@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\App.tsx": {
-    "mtime": 1780448835.2449038,
-    "ast_hash": "3e6b4a9d0bd5f0f1b06bd64ad89fb823",
+    "mtime": 1780450144.0564744,
+    "ast_hash": "de2822447787dce7fcdc06329b1d866c",
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\eslint.config.js": {
@@ -65,8 +65,8 @@
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\src\\components\\tui-nav.tsx": {
-    "mtime": 1780449472.2244606,
-    "ast_hash": "5235ec4e554f989c95a80608b396af31",
+    "mtime": 1780450137.7293346,
+    "ast_hash": "05ae7db178c9f0e65a4117cebe013ef0",
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\src\\components\\tui-skeleton.tsx": {
@@ -135,8 +135,8 @@
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\README.md": {
-    "mtime": 1780449095.7413218,
-    "ast_hash": "e3fec01fc4df3dd5d7cf90b711011776",
+    "mtime": 1780450090.8731244,
+    "ast_hash": "c73ba00f5e40acf125cf5710f6361618",
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\.expo\\README.md": {
@@ -147,6 +147,16 @@
   "E:\\Github\\tui-template-native\\.expo\\web\\cache\\production\\images\\favicon\\favicon-07d170506bbe0631d7a279f0110a7d637d613a1a4e34c095456ffc1e7a4b14eb-contain-transparent\\favicon-48.png": {
     "mtime": 1780449170.9678078,
     "ast_hash": "e50cb0e9ef30854f3b59141c1c01299c",
+    "semantic_hash": ""
+  },
+  "E:\\Github\\tui-template-native\\src\\components\\splash-icon.tsx": {
+    "mtime": 1780449967.315622,
+    "ast_hash": "7ab9e9087cd224fc29b5927844f84e99",
+    "semantic_hash": ""
+  },
+  "E:\\Github\\tui-template-native\\src\\components\\tui-header.tsx": {
+    "mtime": 1780450065.8134549,
+    "ast_hash": "5353ccf32ee28bfc75035f1951998efa",
     "semantic_hash": ""
   }
 }

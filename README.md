@@ -60,6 +60,13 @@ All components are styled using high-contrast borders, solid black drop shadows,
 *   `<TuiDrawer>`: Slide-up bottom sheets with spring overlay transitions.
 *   `<TuiSkeletonLoader>`: Pulsing block layout skeletons to mask loading states.
 *   `<TuiTabBar>`: A modular, responsive bottom navigation bar.
+*   `<TuiHeader>`: A brutalist double-border top bar supporting a left icon, app title, dynamic `// path` subtitle, and right-aligned action elements.
+*   `<SplashIcon>`: Clean vector rendering of a retro terminal cursor prompt (`>_`) used for loading and splash transitions.
+
+### 🌅 Internal Animated Splash Screen
+The application features a custom, double-layer boot splash screen:
+- **Native Splash Screen**: `expo-splash-screen` handles initial drawing while the device environment mounts.
+- **Animated Splash Overlay**: A full-screen `<SplashIcon>` TUI prompt overlay loads with a simulated 800ms loading sequence and fades out smoothly to prevent visual layout popping once the application views are ready.
 
 ### Theme & Colors (`src/theme/`)
 Governed by [theme-provider.tsx](file:///e:/Github/tui-template-native/src/theme/theme-provider.tsx). It handles:

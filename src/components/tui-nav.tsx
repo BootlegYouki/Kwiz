@@ -5,7 +5,7 @@ import { useTheme } from '../theme/theme-provider';
 import { TuiText } from './tui-text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export type ScreenType = 'dashboard' | 'expenses' | 'add-transaction' | 'stats' | 'debts' | 'settings';
+export type ScreenType = 'screen1' | 'screen2' | 'action' | 'screen3' | 'screen4' | 'settings';
 
 interface TuiTabBarProps {
   currentScreen: ScreenType;
@@ -29,15 +29,14 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
 
   const borderAccent = colors.primary;
 
-  const menuItems: { screen: ScreenType; label: string; Icon: React.ComponentType<any>; isAction?: boolean }[] = [
-    { screen: 'dashboard', label: 'Btn 1', Icon: LayoutGrid },
-    { screen: 'expenses', label: 'Btn 2', Icon: FileText },
-    { screen: 'add-transaction', label: 'Action', Icon: Plus, isAction: true },
-    { screen: 'stats', label: 'Btn 3', Icon: TrendingUp },
-    { screen: 'debts', label: 'Btn 4', Icon: Landmark },
+  const menuItems: { screen: ScreenType; label: string; Icon: React.ComponentType<any> }[] = [
+    { screen: 'screen1', label: 'Screen 1', Icon: LayoutGrid },
+    { screen: 'screen2', label: 'Screen 2', Icon: FileText },
+    { screen: 'screen3', label: 'Screen 3', Icon: TrendingUp },
+    { screen: 'screen4', label: 'Screen 4', Icon: Landmark },
   ];
 
-  const isPlusActive = currentScreen === 'add-transaction';
+  const isPlusActive = currentScreen === 'action';
 
   // Staggering animation refs for tab pop-in/slide-up
   const initialValue = hasAnimatedNav ? 1 : 0;
@@ -64,12 +63,6 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
         tension: 100,
         useNativeDriver: true,
       }),
-      Animated.spring(tabAnimAdd, {
-        toValue: 1,
-        friction: 9,
-        tension: 100,
-        useNativeDriver: true,
-      }),
       Animated.spring(tabAnimStats, {
         toValue: 1,
         friction: 9,
@@ -82,15 +75,21 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
         tension: 100,
         useNativeDriver: true,
       }),
+      Animated.spring(tabAnimAdd, {
+        toValue: 1,
+        friction: 9,
+        tension: 100,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, [startAnimation]);
 
   const tabAnims: Record<ScreenType, Animated.Value> = {
-    dashboard: tabAnimHome,
-    expenses: tabAnimLogs,
-    stats: tabAnimStats,
-    debts: tabAnimDebts,
-    'add-transaction': tabAnimAdd,
+    screen1: tabAnimHome,
+    screen2: tabAnimLogs,
+    screen3: tabAnimStats,
+    screen4: tabAnimDebts,
+    action: tabAnimAdd,
     settings: React.useRef(new Animated.Value(1)).current,
   };
 
@@ -98,10 +97,11 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
     <View style={[styles.shadowWrapper, { bottom: insets.bottom }]}>
       <View style={styles.navRow}>
 
+        {/* 4 MENU TABS */}
         {menuItems.map((item, idx) => {
-          const isActive = item.isAction ? isPlusActive : currentScreen === item.screen;
-          const bWidth = buttonWidths[item.screen] || (item.isAction ? 52 : 70);
-          const lWidth = legendWidths[item.screen] || (item.isAction ? 24 : 32);
+          const isActive = currentScreen === item.screen;
+          const bWidth = buttonWidths[item.screen] || 70;
+          const lWidth = legendWidths[item.screen] || 32;
           const topSegmentWidth = Math.max(0, (bWidth - lWidth) / 2);
           const anim = tabAnims[item.screen];
 
@@ -109,9 +109,8 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
             <Animated.View
               key={item.screen}
               style={{
-                flex: item.isAction ? undefined : 1,
-                width: item.isAction ? 52 : undefined,
-                marginRight: idx === menuItems.length - 1 ? 0 : 8,
+                flex: 1,
+                marginRight: idx === menuItems.length - 1 ? 48 : 8,
                 opacity: anim,
                 transform: [
                   { scale: anim },
@@ -126,14 +125,12 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
             >
               <Pressable
                 onPress={() => onNavigate(item.screen)}
-                onLongPress={item.isAction ? onLongPressAdd : undefined}
-                delayLongPress={item.isAction ? 350 : undefined}
                 onLayout={(e) => {
                   const width = e.nativeEvent.layout.width;
                   setButtonWidths(prev => ({ ...prev, [item.screen]: width }));
                 }}
                 style={[
-                  item.isAction ? styles.plusBtnSquare : styles.tabSquare,
+                  styles.tabSquare,
                   {
                     backgroundColor: isActive ? (isDark ? '#27272A' : '#E4E4E7') : colors.card,
                   },
@@ -182,6 +179,93 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
           );
         })}
 
+        {/* STANDALONE ACTION button */}
+        <Animated.View
+          style={{
+            opacity: tabAnimAdd,
+            transform: [
+              { scale: tabAnimAdd },
+              {
+                translateY: tabAnimAdd.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [24, 0],
+                }),
+              },
+            ],
+          }}
+        >
+          <Pressable
+            onPress={() => onNavigate('action')}
+            onLongPress={onLongPressAdd}
+            delayLongPress={350}
+            onLayout={(e) => {
+              const width = e.nativeEvent.layout.width;
+              setButtonWidths(prev => ({ ...prev, ['action']: width }));
+            }}
+            style={[
+              styles.plusBtnSquare,
+              {
+                backgroundColor: isPlusActive ? (isDark ? '#27272A' : '#E4E4E7') : colors.card,
+              },
+            ]}
+          >
+            {/* Dynamic Segmented Borders */}
+            <View style={[styles.borderLeft, { backgroundColor: borderAccent }]} />
+            <View style={[styles.borderRight, { backgroundColor: borderAccent }]} />
+            <View style={[styles.borderBottom, { backgroundColor: borderAccent }]} />
+            <View
+              style={[
+                styles.borderTopLeft,
+                {
+                  backgroundColor: borderAccent,
+                  width: Math.max(0, ((buttonWidths['action'] || 52) - (legendWidths['action'] || 24)) / 2)
+                }
+              ]}
+            />
+            <View
+              style={[
+                styles.borderTopRight,
+                {
+                  backgroundColor: borderAccent,
+                  width: Math.max(0, ((buttonWidths['action'] || 52) - (legendWidths['action'] || 24)) / 2)
+                }
+              ]}
+            />
+
+            {/* Brutalist legend resting on top border */}
+            <View
+              onLayout={(e) => {
+                const width = e.nativeEvent.layout.width;
+                setLegendWidths(prev => ({ ...prev, ['action']: width }));
+              }}
+              style={[
+                styles.legendWrapper,
+                {
+                  backgroundColor: 'transparent',
+                  paddingHorizontal: 2,
+                }
+              ]}
+            >
+              <TuiText
+                weight="bold"
+                style={[
+                  styles.legendText,
+                  { color: isPlusActive ? colors.primary : colors.mutedForeground },
+                ]}
+              >
+                Add
+              </TuiText>
+            </View>
+
+            <View style={styles.tabContent} pointerEvents="none">
+              <Plus
+                size={18}
+                color={isPlusActive ? colors.primary : colors.mutedForeground}
+              />
+            </View>
+          </Pressable>
+        </Animated.View>
+
       </View>
     </View>
   );
@@ -191,26 +275,26 @@ const styles = StyleSheet.create({
   shadowWrapper: {
     position: 'absolute',
     bottom: 15,
-    left: 20, // Comfortable breathing room
-    right: 20, // Comfortable breathing room
+    left: 20,
+    right: 20,
     zIndex: 9995,
   },
   navRow: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    marginTop: 10, // Margin to protect top overlapping legends
+    marginTop: 10,
   },
   tabSquare: {
-    flex: 1, // Uniform responsive width sharing
-    height: 52, // Balanced vertical square height
+    flex: 1,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   plusBtnSquare: {
     height: 52,
-    width: 52, // Fixed width matching height exactly to be a perfect square
+    width: 52,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
