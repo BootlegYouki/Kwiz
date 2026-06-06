@@ -32,18 +32,24 @@ jobs:
           "
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          set -o pipefail
+          npm install 2>&1 | tee npm_install.log
 
       - name: Expo Prebuild (Generate iOS folder)
-        run: npx expo prebuild --platform ios --clean
+        run: |
+          set -o pipefail
+          npx expo prebuild --platform ios --clean 2>&1 | tee prebuild.log
 
       - name: Install CocoaPods
         run: |
+          set -o pipefail
           cd ios
-          pod install
+          pod install 2>&1 | tee ../pod_install.log
 
       - name: Build Unsigned Dev Client App (Debug)
         run: |
+          set -o pipefail
           cd ios
           xcodebuild -workspace TuiTemplateNative.xcworkspace \
             -scheme TuiTemplateNative \
@@ -52,7 +58,7 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+            CODE_SIGN_IDENTITY="" 2>&1 | tee ../xcodebuild.log
 
       - name: Package into IPA
         run: |
@@ -82,3 +88,54 @@ jobs:
             BetterExpo-DevClient.ipa
           draft: false
           prerelease: true
+
+      - name: Report Build Errors
+        if: failure()
+        run: |
+          echo "### ❌ Build Failed" >> $GITHUB_STEP_SUMMARY
+          echo "Here is a summary of the errors encountered during the build process:" >> $GITHUB_STEP_SUMMARY
+          
+          # Check npm install log
+          if [ -f npm_install.log ]; then
+            if grep -qi "err" npm_install.log; then
+              echo "#### 📦 npm install errors:" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              grep -i -C 2 "err" npm_install.log | tail -n 25 >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          # Check expo prebuild log
+          if [ -f prebuild.log ]; then
+            if grep -qi "error\|failed" prebuild.log; then
+              echo "#### ⚙️ Expo Prebuild errors:" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              grep -i -C 2 "error\|failed" prebuild.log | tail -n 25 >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          # Check cocoa pods install log
+          if [ -f pod_install.log ]; then
+            if grep -qi "error\|failed" pod_install.log; then
+              echo "#### 🍏 CocoaPods installation errors:" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              grep -i -C 2 "error\|failed" pod_install.log | tail -n 25 >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          # Check xcodebuild log
+          if [ -f xcodebuild.log ]; then
+            echo "#### 🛠️ Xcode compilation errors:" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            # Xcode errors usually contain "error:" or "failed" or "note: build failed" or clang/swiftc errors
+            grep -i -E "error:|failed|clang: error|swiftc: error" xcodebuild.log | tail -n 30 >> $GITHUB_STEP_SUMMARY
+            
+            # If nothing was written to summary from grep, fall back to last 30 lines of xcodebuild
+            if [ $(wc -l < $GITHUB_STEP_SUMMARY) -lt 6 ]; then
+              echo "Last 30 lines of compilation output:" >> $GITHUB_STEP_SUMMARY
+              tail -n 30 xcodebuild.log >> $GITHUB_STEP_SUMMARY
+            fi
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
