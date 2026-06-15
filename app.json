@@ -67,7 +67,8 @@
           "faceIDPermission": "Allow the app to authenticate using FaceID."
         }
       ],
-      "expo-share-extension"
+      "expo-share-extension",
+      "@react-native-community/datetimepicker"
     ]
   }
 }
