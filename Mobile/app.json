@@ -70,9 +70,31 @@
               "pathPattern": ".*\\.kwiz"
             }
           ]
+        },
+        {
+          "action": "VIEW",
+          "categories": [
+            "DEFAULT",
+            "BROWSABLE"
+          ],
+          "data": [
+            {
+              "scheme": "file",
+              "host": "*",
+              "mimeType": "*/*",
+              "pathPattern": ".*\\.kwiz"
+            },
+            {
+              "scheme": "content",
+              "host": "*",
+              "mimeType": "*/*",
+              "pathPattern": ".*\\.kwiz"
+            }
+          ]
         }
       ],
-      "versionCode": 2
+      "versionCode": 2,
+      "package": "com.bootlegyouki.kwiz"
     },
     "web": {
       "favicon": "./assets/favicon.png"

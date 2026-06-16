@@ -101,9 +101,25 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-
       - name: Expo Prebuild (Generate Android folder)
         run: npx expo prebuild --platform android --clean
+
+      - name: Configure ABI Splitting
+        run: |
+          node -e "
+            const fs = require('fs');
+            let content = fs.readFileSync('android/app/build.gradle', 'utf8');
+            const insertIndex = content.indexOf('android {');
+            if (insertIndex !== -1) {
+              const splitBlock = '\n    splits {\n        abi {\n            enable true\n            reset()\n            include \"arm64-v8a\"\n            universalApk false\n        }\n    }\n';
+              content = content.slice(0, insertIndex + 9) + splitBlock + content.slice(insertIndex + 9);
+              fs.writeFileSync('android/app/build.gradle', content);
+              console.log('Successfully configured splits in build.gradle');
+            } else {
+              console.error('Could not find android block in build.gradle');
+              process.exit(1);
+            }
+          "
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -115,7 +131,7 @@ jobs:
 
       - name: Prepare APK Artifact
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk ../Kwiz.apk
+          cp android/app/build/outputs/apk/release/app-arm64-v8a-release.apk ../Kwiz.apk
 
       - name: Create GitHub Release (Android)
         uses: softprops/action-gh-release@v2
@@ -126,11 +142,12 @@ jobs:
             ## Kwiz v${{ needs.bump-version.outputs.version }} (Android Release)
             
             ### Android Installation
-            Download the `Kwiz.apk` file below and install it on your Android device.
+            Download the `Kwiz.apk` file below (built for modern arm64-v8a devices) and install it on your device.
           files: |
             Kwiz.apk
           draft: false
           prerelease: false
+
 
   build-ios:
     name: Build iOS IPA
