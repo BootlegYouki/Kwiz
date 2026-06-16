@@ -1,0 +1,18 @@
+{
+  "name": "Kwiz",
+  "identifier": "com.bootlegyouki.kwiz.source",
+  "apps": [
+    {
+      "name": "Kwiz",
+      "bundleIdentifier": "com.bootlegyouki.kwiz",
+      "developerName": "BootlegYouki",
+      "version": "1.0.1",
+      "versionDate": "2026-06-16T13:18:17Z",
+      "downloadURL": "https://github.com/BootlegYouki/Kwiz/releases/download/v1.0.1-ios/Kwiz.ipa",
+      "localizedDescription": "Learn and play quizzes.",
+      "iconURL": "https://raw.githubusercontent.com/BootlegYouki/Kwiz/main/assets/icon.png",
+      "tintColor": "00E5FF",
+      "size": 0
+    }
+  ]
+}
