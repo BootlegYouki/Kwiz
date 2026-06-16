@@ -28,6 +28,7 @@ interface ThemeContextType {
   accentTheme: AccentTheme;
   colors: ThemeColors;
   isDark: boolean;
+  themeLoaded: boolean;
   setThemeMode: (mode: ThemeMode) => void;
   setAccentTheme: (theme: AccentTheme) => void;
 }
@@ -47,6 +48,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const systemScheme = useColorScheme();
   const [themeMode, setThemeModeState] = useState<ThemeMode>('dark');
   const [accentTheme, setAccentThemeState] = useState<AccentTheme>('classic');
+  const [themeLoaded, setThemeLoaded] = useState(false);
 
   // Load preferences on startup
   useEffect(() => {
@@ -59,6 +61,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (savedAccent) setAccentThemeState(savedAccent as AccentTheme || 'classic');
       } catch (e) {
         console.error('Failed to load theme preferences', e);
+      } finally {
+        setThemeLoaded(true);
       }
     };
     loadPreferences();
@@ -130,6 +134,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         accentTheme,
         colors,
         isDark,
+        themeLoaded,
         setThemeMode,
         setAccentTheme,
       }}

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ViewStyle, Pressable } from 'react-native';
 import { useTheme } from '../theme/theme-provider';
 import { TuiText } from './tui-text';
+import { TuiRetroBorders } from './tui-retro-borders';
 
 interface TuiContainerProps {
   children: React.ReactNode;
@@ -12,6 +13,7 @@ interface TuiContainerProps {
   accentBorder?: boolean;
   onBadgePress?: () => void;
   labelSize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
+  borderColor?: string;
 }
 
 export const TuiContainer: React.FC<TuiContainerProps> = ({
@@ -23,12 +25,14 @@ export const TuiContainer: React.FC<TuiContainerProps> = ({
   accentBorder = false,
   onBadgePress,
   labelSize = 'md',
+  borderColor,
 }) => {
   const { colors, isDark } = useTheme();
   const [legendWidth, setLegendWidth] = React.useState(0);
 
   // Brutalist double-line border style, or clean solid border
-  const borderColor = accentBorder ? colors.primary : (isDark ? colors.primary + '40' : colors.primary + '30');
+  const finalBorderColor = borderColor || (accentBorder ? colors.primary : (isDark ? colors.mutedForeground : colors.border));
+  const labelColor = borderColor || (accentBorder ? colors.primary : colors.foreground);
   const backgroundColor = colors.card;
 
   return (
@@ -41,20 +45,8 @@ export const TuiContainer: React.FC<TuiContainerProps> = ({
         style,
       ]}
     >
-      {/* Custom Segmented Borders to support transparent legend background without intersection */}
-      <View style={[styles.borderLeft, { backgroundColor: borderColor }]} />
-      <View style={[styles.borderRight, { backgroundColor: borderColor }]} />
-      <View style={[styles.borderBottom, { backgroundColor: borderColor }]} />
-      <View style={[styles.borderTopLeft, { backgroundColor: borderColor }]} />
-      <View 
-        style={[
-          styles.borderTopRight, 
-          { 
-            backgroundColor: borderColor, 
-            left: 12 + legendWidth,
-          }
-        ]} 
-      />
+      {/* Custom Segmented Borders */}
+      <TuiRetroBorders borderColor={finalBorderColor} legendWidth={legendWidth} />
 
       {/* Legend Container */}
       <View
@@ -66,7 +58,7 @@ export const TuiContainer: React.FC<TuiContainerProps> = ({
           },
         ]}
       >
-        <TuiText weight="bold" size={labelSize} style={{ color: colors.primary }}>
+        <TuiText weight="bold" size={labelSize} style={{ color: labelColor }}>
           {label}
         </TuiText>
         {badge && (
@@ -76,14 +68,14 @@ export const TuiContainer: React.FC<TuiContainerProps> = ({
             style={({ pressed }) => [
               styles.badgeContainer,
               {
-                borderColor: colors.primary,
+                borderColor: finalBorderColor,
                 backgroundColor: pressed 
-                  ? colors.primary + '30' 
-                  : (isDark ? colors.primary + '15' : colors.primary + '10'),
+                  ? finalBorderColor + '30' 
+                  : (isDark ? finalBorderColor + '15' : finalBorderColor + '10'),
               },
             ]}
           >
-            <TuiText size="sm" weight="bold" style={{ color: colors.primary }}>
+            <TuiText size="sm" weight="bold" style={{ color: finalBorderColor }}>
               {badge}
             </TuiText>
           </Pressable>

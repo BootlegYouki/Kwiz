@@ -1,6 +1,5 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Svg, { Polyline } from 'react-native-svg';
 import { useTheme } from '../theme/theme-provider';
 import { TuiText } from './tui-text';
 
@@ -26,22 +25,17 @@ export const TuiCheckbox: React.FC<TuiCheckboxProps> = ({
   };
 
   const getColors = () => {
-    const foregroundColor = colors.foreground;
-    const backgroundColor = colors.background;
-    
     if (disabled) {
       return {
-        border: isDark ? 'rgba(250, 250, 250, 0.3)' : 'rgba(9, 9, 9, 0.3)',
-        bg: 'transparent',
-        text: isDark ? '#71717A' : '#A1A1AA',
-        check: isDark ? '#71717A' : '#A1A1AA',
+        border: isDark ? '#3F3F46' : '#A1A1AA',
+        text: isDark ? '#71717A' : '#71717A',
+        check: 'transparent',
       };
     }
     return {
-      border: checked ? foregroundColor : (isDark ? 'rgba(250, 250, 250, 0.6)' : 'rgba(9, 9, 9, 0.6)'),
-      bg: checked ? foregroundColor : backgroundColor,
-      text: foregroundColor,
-      check: backgroundColor,
+      border: checked ? colors.primary : (isDark ? colors.primary + '30' : '#000000'),
+      text: colors.foreground,
+      check: colors.primary,
     };
   };
 
@@ -56,33 +50,30 @@ export const TuiCheckbox: React.FC<TuiCheckboxProps> = ({
         pressed && styles.pressed,
       ]}
     >
+      {/* Brutalist checkbox bracket: [ X ] or [   ] */}
       <View
         style={[
           styles.checkboxBox,
           {
             borderColor: boxColors.border,
-            backgroundColor: boxColors.bg,
+            backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
           },
         ]}
       >
-        {checked && (
-          <Svg
-            width={12}
-            height={12}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke={boxColors.check}
-            strokeWidth={3.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <Polyline points="20 6 9 17 4 12" />
-          </Svg>
-        )}
+        <TuiText
+          weight="bold"
+          style={{
+            color: boxColors.check,
+            fontSize: 12,
+            textAlign: 'center',
+            lineHeight: 16,
+          }}
+        >
+          {checked ? 'X' : ' '}
+        </TuiText>
       </View>
       
       <TuiText
-        weight="bold"
         style={[
           styles.label,
           {
@@ -90,7 +81,7 @@ export const TuiCheckbox: React.FC<TuiCheckboxProps> = ({
           },
         ]}
       >
-        {label.toUpperCase()}
+        {label}
       </TuiText>
     </Pressable>
   );
@@ -107,15 +98,14 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   checkboxBox: {
-    width: 16,
-    height: 16,
-    borderWidth: 1,
+    width: 22,
+    height: 22,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginRight: 10,
   },
   label: {
-    fontSize: 11,
-    letterSpacing: 0.5,
+    fontSize: 13,
   },
 });

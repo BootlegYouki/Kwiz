@@ -9,10 +9,16 @@ project_dir = os.path.dirname(scripts_dir)
 assets_dir = os.path.join(project_dir, "assets")
 icon_path = os.path.join(assets_dir, "icon.png")
 
-# Check if iconpack folder exists inside assets/
+# Check if iconpack or IconKitchen-Output folder exists inside assets/
 iconpack_dir = os.path.join(assets_dir, "iconpack")
+if not os.path.exists(iconpack_dir):
+    for name in os.listdir(assets_dir):
+        if name.lower() == "iconkitchen-output":
+            iconpack_dir = os.path.join(assets_dir, name)
+            break
+
 if os.path.exists(iconpack_dir):
-    print(f"Iconpack folder found at {iconpack_dir}. Searching for base app icon...")
+    print(f"Icon source folder found at {iconpack_dir}. Searching for base app icon...")
     base_icon_src = None
     
     # Prioritized search list
@@ -38,14 +44,14 @@ if os.path.exists(iconpack_dir):
         print(f"Extracted base icon: {base_icon_src} -> {icon_path}")
         shutil.copy(base_icon_src, icon_path)
         
-        # Clean up the iconpack folder after successful extraction
+        # Clean up the folder after successful extraction
         try:
             shutil.rmtree(iconpack_dir)
-            print("Successfully cleaned up iconpack folder.")
+            print(f"Successfully cleaned up {os.path.basename(iconpack_dir)} folder.")
         except Exception as e:
-            print(f"Warning: Could not delete iconpack folder: {e}")
+            print(f"Warning: Could not delete folder: {e}")
     else:
-        print("Warning: Could not find any standard marketing or AppIcon source in the iconpack folder.")
+        print(f"Warning: Could not find any standard marketing or AppIcon source in {os.path.basename(iconpack_dir)}.")
 
 # Load original full icon
 if not os.path.exists(icon_path):

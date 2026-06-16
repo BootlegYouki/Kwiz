@@ -1,16 +1,15 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, Pressable, Animated } from 'react-native';
-import { LayoutGrid, FileText, Landmark, Plus, TrendingUp } from 'lucide-react-native';
+import { LayoutGrid, Settings, Plus } from 'lucide-react-native';
 import { useTheme } from '../theme/theme-provider';
 import { TuiText } from './tui-text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export type ScreenType = 'screen1' | 'screen2' | 'action' | 'screen3' | 'screen4' | 'settings';
+export type ScreenType = 'screen1' | 'settings' | 'action';
 
 interface TuiTabBarProps {
   currentScreen: ScreenType;
   onNavigate: (screen: ScreenType) => void;
-  onLongPressAdd?: () => void;
   startAnimation?: boolean;
 }
 
@@ -19,7 +18,6 @@ let hasAnimatedNav = false;
 export const TuiTabBar: React.FC<TuiTabBarProps> = ({
   currentScreen,
   onNavigate,
-  onLongPressAdd,
   startAnimation = false,
 }) => {
   const { colors, isDark } = useTheme();
@@ -30,21 +28,16 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
   const borderAccent = colors.primary;
 
   const menuItems: { screen: ScreenType; label: string; Icon: React.ComponentType<any> }[] = [
-    { screen: 'screen1', label: 'Screen 1', Icon: LayoutGrid },
-    { screen: 'screen2', label: 'Screen 2', Icon: FileText },
-    { screen: 'screen3', label: 'Screen 3', Icon: TrendingUp },
-    { screen: 'screen4', label: 'Screen 4', Icon: Landmark },
+    { screen: 'screen1', label: 'Home', Icon: LayoutGrid },
+    { screen: 'settings', label: 'Settings', Icon: Settings },
   ];
 
   const isPlusActive = currentScreen === 'action';
 
-  // Staggering animation refs for tab pop-in/slide-up
-  const initialValue = hasAnimatedNav ? 1 : 0;
-  const tabAnimHome = React.useRef(new Animated.Value(initialValue)).current;
-  const tabAnimLogs = React.useRef(new Animated.Value(initialValue)).current;
-  const tabAnimStats = React.useRef(new Animated.Value(initialValue)).current;
-  const tabAnimDebts = React.useRef(new Animated.Value(initialValue)).current;
-  const tabAnimAdd = React.useRef(new Animated.Value(initialValue)).current;
+  // Animated values using useMemo to avoid ESLint ref-render error
+  const tabAnimHome = useMemo(() => new Animated.Value(hasAnimatedNav ? 1 : 0), []);
+  const tabAnimSettings = useMemo(() => new Animated.Value(hasAnimatedNav ? 1 : 0), []);
+  const tabAnimAdd = useMemo(() => new Animated.Value(hasAnimatedNav ? 1 : 0), []);
 
   React.useEffect(() => {
     if (!startAnimation || hasAnimatedNav) return;
@@ -57,19 +50,7 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
         tension: 100,
         useNativeDriver: true,
       }),
-      Animated.spring(tabAnimLogs, {
-        toValue: 1,
-        friction: 9,
-        tension: 100,
-        useNativeDriver: true,
-      }),
-      Animated.spring(tabAnimStats, {
-        toValue: 1,
-        friction: 9,
-        tension: 100,
-        useNativeDriver: true,
-      }),
-      Animated.spring(tabAnimDebts, {
+      Animated.spring(tabAnimSettings, {
         toValue: 1,
         friction: 9,
         tension: 100,
@@ -86,18 +67,15 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
 
   const tabAnims: Record<ScreenType, Animated.Value> = {
     screen1: tabAnimHome,
-    screen2: tabAnimLogs,
-    screen3: tabAnimStats,
-    screen4: tabAnimDebts,
+    settings: tabAnimSettings,
     action: tabAnimAdd,
-    settings: React.useRef(new Animated.Value(1)).current,
   };
 
   return (
     <View style={[styles.shadowWrapper, { bottom: insets.bottom }]}>
       <View style={styles.navRow}>
-
-        {/* 4 MENU TABS */}
+        
+        {/* MENU TABS */}
         {menuItems.map((item, idx) => {
           const isActive = currentScreen === item.screen;
           const bWidth = buttonWidths[item.screen] || 70;
@@ -127,7 +105,7 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
                 onPress={() => onNavigate(item.screen)}
                 onLayout={(e) => {
                   const width = e.nativeEvent.layout.width;
-                  setButtonWidths(prev => ({ ...prev, [item.screen]: width }));
+                  setButtonWidths((prev) => ({ ...prev, [item.screen]: width }));
                 }}
                 style={[
                   styles.tabSquare,
@@ -147,14 +125,14 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
                 <View
                   onLayout={(e) => {
                     const width = e.nativeEvent.layout.width;
-                    setLegendWidths(prev => ({ ...prev, [item.screen]: width }));
+                    setLegendWidths((prev) => ({ ...prev, [item.screen]: width }));
                   }}
                   style={[
                     styles.legendWrapper,
                     {
                       backgroundColor: 'transparent',
                       paddingHorizontal: 2,
-                    }
+                    },
                   ]}
                 >
                   <TuiText
@@ -196,11 +174,9 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
         >
           <Pressable
             onPress={() => onNavigate('action')}
-            onLongPress={onLongPressAdd}
-            delayLongPress={350}
             onLayout={(e) => {
               const width = e.nativeEvent.layout.width;
-              setButtonWidths(prev => ({ ...prev, ['action']: width }));
+              setButtonWidths((prev) => ({ ...prev, ['action']: width }));
             }}
             style={[
               styles.plusBtnSquare,
@@ -218,8 +194,11 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
                 styles.borderTopLeft,
                 {
                   backgroundColor: borderAccent,
-                  width: Math.max(0, ((buttonWidths['action'] || 52) - (legendWidths['action'] || 24)) / 2)
-                }
+                  width: Math.max(
+                    0,
+                    ((buttonWidths['action'] || 52) - (legendWidths['action'] || 24)) / 2
+                  ),
+                },
               ]}
             />
             <View
@@ -227,8 +206,11 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
                 styles.borderTopRight,
                 {
                   backgroundColor: borderAccent,
-                  width: Math.max(0, ((buttonWidths['action'] || 52) - (legendWidths['action'] || 24)) / 2)
-                }
+                  width: Math.max(
+                    0,
+                    ((buttonWidths['action'] || 52) - (legendWidths['action'] || 24)) / 2
+                  ),
+                },
               ]}
             />
 
@@ -236,14 +218,14 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
             <View
               onLayout={(e) => {
                 const width = e.nativeEvent.layout.width;
-                setLegendWidths(prev => ({ ...prev, ['action']: width }));
+                setLegendWidths((prev) => ({ ...prev, ['action']: width }));
               }}
               style={[
                 styles.legendWrapper,
                 {
                   backgroundColor: 'transparent',
                   paddingHorizontal: 2,
-                }
+                },
               ]}
             >
               <TuiText
@@ -265,7 +247,6 @@ export const TuiTabBar: React.FC<TuiTabBarProps> = ({
             </View>
           </Pressable>
         </Animated.View>
-
       </View>
     </View>
   );

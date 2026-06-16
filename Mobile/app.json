@@ -14,6 +14,26 @@
         "light": "./assets/icon.png",
         "dark": "./assets/icon.png",
         "tinted": "./assets/adaptive-icon-monochrome.png"
+      },
+      "infoPlist": {
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "Kwiz File",
+            "CFBundleTypeRole": "Viewer",
+            "LSHandlerRank": "Owner",
+            "LSItemContentTypes": ["com.bootlegyouki.kwiz"]
+          }
+        ],
+        "UTExportedTypeDeclarations": [
+          {
+            "UTTypeIdentifier": "com.bootlegyouki.kwiz",
+            "UTTypeConformsTo": ["public.data"],
+            "UTTypeDescription": "Kwiz Quiz File",
+            "UTTypeTagSpecification": {
+              "public.filename-extension": ["kwiz"]
+            }
+          }
+        ]
       }
     },
     "android": {
@@ -22,7 +42,27 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "monochromeImage": "./assets/adaptive-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "categories": ["DEFAULT", "BROWSABLE"],
+          "data": [
+            {
+              "scheme": "file",
+              "host": "*",
+              "mimeType": "*/*",
+              "pathPattern": ".*\\.kwiz"
+            },
+            {
+              "scheme": "content",
+              "host": "*",
+              "mimeType": "*/*",
+              "pathPattern": ".*\\.kwiz"
+            }
+          ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -42,32 +82,6 @@
           }
         }
       ],
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow the app to access the camera."
-        }
-      ],
-      [
-        "expo-media-library",
-        {
-          "photosPermission": "Allow the app to access your photo library.",
-          "savePhotosPermission": "Allow the app to save images to your library."
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Allow the app to access your photo library."
-        }
-      ],
-      [
-        "expo-local-authentication",
-        {
-          "faceIDPermission": "Allow the app to authenticate using FaceID."
-        }
-      ],
-      "expo-share-extension",
       "@react-native-community/datetimepicker"
     ]
   }

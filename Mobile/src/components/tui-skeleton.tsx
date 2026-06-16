@@ -6,6 +6,24 @@ import { useTheme } from '../theme/theme-provider';
 import { TuiContainer } from './tui-container';
 import { TuiText } from './tui-text';
 
+// Helper component to render pulsing skeleton text/bars, declared outside render to fix lint error
+const PulseText: React.FC<{
+  children: React.ReactNode;
+  style?: any;
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
+  weight?: 'regular' | 'bold';
+  variant?: 'default' | 'muted' | 'accent';
+  opacity: any;
+}> = ({ children, style, size = 'xs', weight = 'bold', variant = 'muted', opacity }) => {
+  return (
+    <Animated.View style={{ opacity }}>
+      <TuiText size={size} weight={weight} variant={variant} style={style}>
+        {children}
+      </TuiText>
+    </Animated.View>
+  );
+};
+
 export const TuiSkeletonLoader: React.FC = () => {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
@@ -38,23 +56,6 @@ export const TuiSkeletonLoader: React.FC = () => {
   const borderAccent = isDark ? colors.primary : '#000000';
   const skeletonMutedBorder = isDark ? '#27272A' : '#E4E4E7';
 
-  // Helper component to render pulsing skeleton text/bars
-  const PulseText: React.FC<{
-    children: React.ReactNode;
-    style?: any;
-    size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
-    weight?: 'regular' | 'bold';
-    variant?: 'default' | 'muted' | 'accent';
-  }> = ({ children, style, size = 'xs', weight = 'bold', variant = 'muted' }) => {
-    return (
-      <Animated.View style={{ opacity }}>
-        <TuiText size={size} weight={weight} variant={variant} style={style}>
-          {children}
-        </TuiText>
-      </Animated.View>
-    );
-  };
-
   // Static items matching the 4 tabs of TuiTabBar, with all text blocked
   const menuItems = [
     { label: '████', Icon: LayoutGrid },
@@ -70,10 +71,10 @@ export const TuiSkeletonLoader: React.FC = () => {
       <View style={[styles.statusBarHeader, { borderColor: borderAccent, backgroundColor: colors.card }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Wallet size={18} color={colors.mutedForeground} style={{ marginRight: 6 }} />
-          <PulseText size="md" weight="bold" variant="accent">
+          <PulseText size="md" weight="bold" variant="accent" opacity={opacity}>
             ████████
           </PulseText>
-          <PulseText size="md" weight="bold" variant="muted" style={{ marginLeft: 8 }}>
+          <PulseText size="md" weight="bold" variant="muted" style={{ marginLeft: 8 }} opacity={opacity}>
             // ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
           </PulseText>
         </View>
@@ -99,11 +100,11 @@ export const TuiSkeletonLoader: React.FC = () => {
       <View style={[styles.fixedTopSection, { backgroundColor: colors.background, borderColor: colors.border }]}>
         <TuiContainer label="████████">
           {/* Main Balance skeleton value using solid blocks */}
-          <PulseText size="3xl" weight="bold" style={{ marginVertical: 4 }}>
+          <PulseText size="3xl" weight="bold" style={{ marginVertical: 4 }} opacity={opacity}>
             ██████████
           </PulseText>
           {/* Income / Expense details using shaded progress blocks */}
-          <PulseText size="xs" style={{ marginTop: 2 }}>
+          <PulseText size="xs" style={{ marginTop: 2 }} opacity={opacity}>
             ███████████████████████████████████████
           </PulseText>
         </TuiContainer>
@@ -116,15 +117,15 @@ export const TuiSkeletonLoader: React.FC = () => {
         <TuiContainer label="██████████████" badge="████">
           <View style={styles.meterContainer}>
             <View style={styles.meterHeader}>
-              <PulseText size="xs" weight="bold">
+              <PulseText size="xs" weight="bold" opacity={opacity}>
                 ██████████████████████████████
               </PulseText>
-              <PulseText size="xs" weight="bold">
+              <PulseText size="xs" weight="bold" opacity={opacity}>
                 ███
               </PulseText>
             </View>
             {/* Shaded ASCII progress meter skeleton bar */}
-            <PulseText style={styles.asciiProgressText} size="md">
+            <PulseText style={styles.asciiProgressText} size="md" opacity={opacity}>
               ████████████████░░░░░░░░░░░░░░░░
             </PulseText>
           </View>
@@ -136,9 +137,9 @@ export const TuiSkeletonLoader: React.FC = () => {
             <View style={[styles.debtCol, { borderRightWidth: 1, borderColor: colors.border }]}>
               <View style={styles.titleRow}>
                 <Landmark size={12} color={colors.mutedForeground} style={styles.titleIcon} />
-                <PulseText size="xs" weight="bold">█████</PulseText>
+                <PulseText size="xs" weight="bold" opacity={opacity}>█████</PulseText>
               </View>
-              <PulseText size="lg" weight="bold" style={{ marginTop: 4 }}>
+              <PulseText size="lg" weight="bold" style={{ marginTop: 4 }} opacity={opacity}>
                 ██████████
               </PulseText>
             </View>
@@ -146,9 +147,9 @@ export const TuiSkeletonLoader: React.FC = () => {
             <View style={[styles.debtCol, { paddingLeft: 12 }]}>
               <View style={styles.titleRow}>
                 <Landmark size={12} color={colors.mutedForeground} style={styles.titleIcon} />
-                <PulseText size="xs" weight="bold">███████</PulseText>
+                <PulseText size="xs" weight="bold" opacity={opacity}>███████</PulseText>
               </View>
-              <PulseText size="lg" weight="bold" style={{ marginTop: 4 }}>
+              <PulseText size="lg" weight="bold" style={{ marginTop: 4 }} opacity={opacity}>
                 ██████████
               </PulseText>
             </View>
@@ -186,17 +187,17 @@ export const TuiSkeletonLoader: React.FC = () => {
 
                 {/* Left Description/Date Block */}
                 <View style={styles.logLeft}>
-                  <PulseText weight="bold" size="sm">
+                  <PulseText weight="bold" size="sm" opacity={opacity}>
                     █████████████
                   </PulseText>
-                  <PulseText size="xs" style={{ marginTop: 2 }}>
+                  <PulseText size="xs" style={{ marginTop: 2 }} opacity={opacity}>
                     ██████████████████
                   </PulseText>
                 </View>
 
                 {/* Right Amount block */}
                 <View style={styles.logRight}>
-                  <PulseText weight="bold" style={{ marginRight: 6 }}>
+                  <PulseText weight="bold" style={{ marginRight: 6 }} opacity={opacity}>
                     ████████
                   </PulseText>
                 </View>
@@ -377,6 +378,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
+    paddingRight: 10,
   },
 
   // Tab bar skeleton

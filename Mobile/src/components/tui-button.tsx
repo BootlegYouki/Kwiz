@@ -6,9 +6,10 @@ import { TuiText } from './tui-text';
 interface TuiButtonProps {
   children: React.ReactNode;
   onPress?: () => void;
-  style?: ViewStyle;
+  style?: any;
   variant?: 'default' | 'accent' | 'destructive' | 'outline';
   disabled?: boolean;
+  fullWidth?: boolean;
 }
 
 export const TuiButton: React.FC<TuiButtonProps> = ({
@@ -17,6 +18,7 @@ export const TuiButton: React.FC<TuiButtonProps> = ({
   style,
   variant = 'default',
   disabled = false,
+  fullWidth = true,
 }) => {
   const { colors, isDark } = useTheme();
 
@@ -68,6 +70,7 @@ export const TuiButton: React.FC<TuiButtonProps> = ({
           backgroundColor: getColors(pressed).bg,
           borderColor: getColors(pressed).border,
         },
+        fullWidth && { width: '100%' },
         style,
       ]}
     >
@@ -94,6 +97,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 6,
-    width: '100%',
   },
 });

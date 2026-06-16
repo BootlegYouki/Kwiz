@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, Modal, Pressable, Animated, Dimensions, Keyboard, Easing } from 'react-native';
+import { View, StyleSheet, Modal, Pressable, Animated, Dimensions, Keyboard, Easing, Platform } from 'react-native';
 import { useTheme } from '../theme/theme-provider';
 import { TuiText } from './tui-text';
 
@@ -46,16 +46,49 @@ export const TuiDrawer: React.FC<TuiDrawerProps> = ({
     extrapolate: 'clamp',
   });
 
+  // Listen to keyboard show/hide events to slide drawer up/down in sync
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        const duration = e?.duration || 250;
+        Animated.timing(nudgeAnim, {
+          toValue: -e.endCoordinates.height,
+          duration: duration,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }).start();
+      }
+    );
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      (e) => {
+        const duration = e?.duration || 250;
+        Animated.timing(nudgeAnim, {
+          toValue: 0,
+          duration: duration,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }).start();
+      }
+    );
 
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   // Sync nudge animation when keyboardOffset changes
   useEffect(() => {
-    Animated.timing(nudgeAnim, {
-      toValue: keyboardOffset,
-      duration: 150,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
+    if (keyboardOffset !== 0) {
+      Animated.timing(nudgeAnim, {
+        toValue: keyboardOffset,
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    }
   }, [keyboardOffset]);
 
   // Sync animations with visible state changes
@@ -160,7 +193,7 @@ const styles = StyleSheet.create({
   drawerContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 40,
+    paddingBottom: 20,
     position: 'relative',
   },
 
@@ -190,6 +223,6 @@ const styles = StyleSheet.create({
   },
   content: {
     width: '100%',
-    marginTop: 20,
+    marginTop: 8,
   },
 });

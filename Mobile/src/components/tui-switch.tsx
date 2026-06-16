@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, View, Animated } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../theme/theme-provider';
 import { TuiText } from './tui-text';
 
@@ -17,16 +17,6 @@ export const TuiSwitch: React.FC<TuiSwitchProps> = ({
   disabled = false,
 }) => {
   const { colors, isDark } = useTheme();
-  const animatedValue = React.useRef(new Animated.Value(value ? 1 : 0)).current;
-
-  React.useEffect(() => {
-    Animated.spring(animatedValue, {
-      toValue: value ? 1 : 0,
-      friction: 8,
-      tension: 100,
-      useNativeDriver: true,
-    }).start();
-  }, [value]);
 
   const handleToggle = () => {
     if (!disabled) {
@@ -34,31 +24,11 @@ export const TuiSwitch: React.FC<TuiSwitchProps> = ({
     }
   };
 
-  const getColors = () => {
-    if (disabled) {
-      return {
-        trackBorder: isDark ? '#27272A' : '#E4E4E7',
-        trackBg: isDark ? '#1C1C1E' : '#F4F4F5',
-        thumbBorder: isDark ? '#27272A' : '#D4D4D8',
-        thumbBg: isDark ? '#27272A' : '#E4E4E7',
-        textColor: isDark ? '#71717A' : '#A1A1AA',
-      };
-    }
-    return {
-      trackBorder: value ? colors.primary : (isDark ? 'rgba(39, 39, 42, 0.6)' : 'rgba(0, 0, 0, 0.6)'),
-      trackBg: value ? colors.primary : colors.muted,
-      thumbBorder: value ? colors.primaryForeground : colors.border,
-      thumbBg: colors.background,
-      textColor: colors.foreground,
-    };
-  };
-
-  const { trackBorder, trackBg, thumbBorder, thumbBg, textColor } = getColors();
-
-  const translateX = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [4, 24],
-  });
+  const activeColor = colors.primary;
+  const inactiveColor = isDark ? '#3F3F46' : '#A1A1AA';
+  const borderColor = disabled
+    ? (isDark ? '#27272A' : '#E4E4E7')
+    : (isDark ? colors.primary + '40' : '#000000');
 
   return (
     <Pressable
@@ -71,39 +41,60 @@ export const TuiSwitch: React.FC<TuiSwitchProps> = ({
     >
       <TuiText style={styles.label}>{label}</TuiText>
 
-      <View style={styles.switchRow}>
+      {/* Terminal styling switch box: [ ON | off ] or [ on | OFF ] */}
+      <View
+        style={[
+          styles.switchBox,
+          {
+            borderColor,
+            backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+          },
+        ]}
+      >
+        {/* ON indicator */}
         <View
           style={[
-            styles.switchTrack,
-            {
-              borderColor: trackBorder,
-              backgroundColor: trackBg,
+            styles.switchSide,
+            value && {
+              backgroundColor: activeColor,
             },
           ]}
         >
-          <Animated.View
-            style={[
-              styles.switchThumb,
-              {
-                backgroundColor: thumbBg,
-                borderColor: thumbBorder,
-                transform: [{ translateX }],
-              },
-            ]}
-          />
+          <TuiText
+            weight="bold"
+            size="xs"
+            style={{
+              color: value ? colors.primaryForeground : inactiveColor,
+              textAlign: 'center',
+            }}
+          >
+            ON
+          </TuiText>
         </View>
-        
-        <TuiText
-          weight="bold"
+
+        {/* Divider */}
+        <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
+        {/* OFF indicator */}
+        <View
           style={[
-            styles.statusText,
-            {
-              color: textColor,
+            styles.switchSide,
+            !value && {
+              backgroundColor: isDark ? '#3F3F46' : '#E4E4E7',
             },
           ]}
         >
-          {value ? 'ON' : 'OFF'}
-        </TuiText>
+          <TuiText
+            weight="bold"
+            size="xs"
+            style={{
+              color: !value ? (isDark ? '#FAFAFA' : '#09090B') : inactiveColor,
+              textAlign: 'center',
+            }}
+          >
+            OFF
+          </TuiText>
+        </View>
       </View>
     </Pressable>
   );
@@ -124,27 +115,21 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
   },
-  switchRow: {
+  switchBox: {
     flexDirection: 'row',
+    borderWidth: 1.5,
+    width: 90,
+    height: 28,
     alignItems: 'center',
   },
-  switchTrack: {
-    width: 44,
-    height: 24,
-    borderWidth: 1,
-    position: 'relative',
+  switchSide: {
+    flex: 1,
+    height: '100%',
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  switchThumb: {
-    position: 'absolute',
-    top: 4,
-    width: 14,
-    height: 14,
-    borderWidth: 1,
-  },
-  statusText: {
-    fontSize: 11,
-    marginLeft: 12,
-    width: 28,
+  divider: {
+    width: 2,
+    height: '100%',
   },
 });

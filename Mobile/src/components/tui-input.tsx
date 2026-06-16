@@ -3,6 +3,7 @@ import { TextInput, View, StyleSheet, TextInputProps, ViewStyle, Keyboard, Press
 import { X } from 'lucide-react-native';
 import { useTheme } from '../theme/theme-provider';
 import { TuiText } from './tui-text';
+import { TuiRetroBorders } from './tui-retro-borders';
 
 interface TuiInputProps extends TextInputProps {
   label?: string;
@@ -66,24 +67,9 @@ export const TuiInput: React.FC<TuiInputProps> = ({
           containerStyle,
         ]}
       >
-        {/* Custom Segmented Borders to support legend label sitting on top border */}
-        <View style={[styles.borderLeft, { backgroundColor: borderColor }]} />
-        <View style={[styles.borderRight, { backgroundColor: borderColor }]} />
-        <View style={[styles.borderBottom, { backgroundColor: borderColor }]} />
-        
         {label ? (
           <>
-            <View style={[styles.borderTopLeft, { backgroundColor: borderColor }]} />
-            <View
-              style={[
-                styles.borderTopRight,
-                {
-                  backgroundColor: borderColor,
-                  left: 12 + legendWidth,
-                },
-              ]}
-            />
-            {/* Legend Label */}
+            <TuiRetroBorders borderColor={borderColor} legendWidth={legendWidth} />
             <View
               onLayout={(e) => setLegendWidth(e.nativeEvent.layout.width)}
               style={styles.legendWrapper}
@@ -105,7 +91,12 @@ export const TuiInput: React.FC<TuiInputProps> = ({
             </View>
           </>
         ) : (
-          <View style={[styles.borderTopSolid, { backgroundColor: borderColor }]} />
+          <>
+            <View style={[styles.borderLeft, { backgroundColor: borderColor }]} />
+            <View style={[styles.borderRight, { backgroundColor: borderColor }]} />
+            <View style={[styles.borderBottom, { backgroundColor: borderColor }]} />
+            <View style={[styles.borderTopSolid, { backgroundColor: borderColor }]} />
+          </>
         )}
 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', height: '100%' }}>

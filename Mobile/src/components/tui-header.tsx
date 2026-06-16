@@ -7,6 +7,7 @@ interface TuiHeaderProps {
   title: string;
   subtitle?: string;
   Icon?: React.ComponentType<any>;
+  iconSize?: number;
   rightElement?: React.ReactNode;
   style?: ViewStyle;
 }
@@ -15,6 +16,7 @@ export const TuiHeader: React.FC<TuiHeaderProps> = ({
   title,
   subtitle,
   Icon,
+  iconSize = 24,
   rightElement,
   style,
 }) => {
@@ -31,7 +33,7 @@ export const TuiHeader: React.FC<TuiHeaderProps> = ({
       style
     ]}>
       <View style={styles.leftSection}>
-        {Icon && <Icon size={18} color={colors.primary} style={styles.icon} />}
+        {Icon && <Icon size={iconSize} color={colors.primary} style={styles.icon} />}
         <TuiText size="md" weight="bold" style={{ color: colors.primary }}>
           {title}
         </TuiText>
@@ -60,6 +62,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 1.5,
     width: '100%',
+    minHeight: 62,
   },
   leftSection: {
     flexDirection: 'row',
