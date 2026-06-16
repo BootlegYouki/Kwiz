@@ -18,6 +18,13 @@
     "core:window:allow-set-focus",
     "core:window:allow-hide",
     "dialog:default",
+    "app:allow-greet",
+    "app:allow-start-oauth-server",
+    "app:allow-check-markitdown",
+    "app:allow-convert-to-markdown",
+    "app:allow-generate-quiz",
+    "app:allow-read-kwiz-file",
+    "app:allow-write-kwiz-file",
     {
       "identifier": "http:default",
       "allow": [
