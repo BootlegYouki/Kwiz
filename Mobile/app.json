@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kwiz",
     "slug": "kwiz",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -93,7 +93,7 @@
           ]
         }
       ],
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/favicon.png"
