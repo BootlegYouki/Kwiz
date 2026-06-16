@@ -108,7 +108,7 @@ export const ContextMenuOverlay: React.FC<ContextMenuOverlayProps> = ({
     },
   ];
 
-  const menuHeight = menuRows.length * 48;
+  const menuHeight = menuRows.length * 48 + 3;
   const showBelow = (previewTop + previewHeight / 2) < (screenHeight / 2);
   const menuGap = 10;
 

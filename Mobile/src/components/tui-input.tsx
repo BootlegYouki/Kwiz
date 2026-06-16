@@ -135,7 +135,7 @@ export const TuiInput: React.FC<TuiInputProps> = ({
                 </TuiText>
               </Pressable>
             )}
-            {(isFocused && !!props.value) ? (
+            {!!props.value ? (
               <Pressable
                 onPress={handleClear}
                 style={{

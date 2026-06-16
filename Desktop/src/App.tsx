@@ -180,6 +180,7 @@ interface Attachment {
 interface NewQuizModalProps {
   visible: boolean;
   onClose: () => void;
+  hasApiKey: boolean;
   onCreate: (config: {
     questionType: QuizSet['questionType'];
     count: number;
@@ -191,6 +192,7 @@ interface NewQuizModalProps {
 const NewQuizModal: React.FC<NewQuizModalProps> = ({
   visible,
   onClose,
+  hasApiKey,
   onCreate,
 }) => {
   const [questionType, setQuestionType] = useState<QuizSet['questionType']>('multiple_choice');
@@ -351,7 +353,7 @@ const NewQuizModal: React.FC<NewQuizModalProps> = ({
             </div>
             <div className="flex-1">
               <TuiButton
-                disabled={isConverting || hasErrors || (attachments.length === 0 && !customPrompt.trim())}
+                disabled={isConverting || hasErrors || (attachments.length === 0 && !customPrompt.trim()) || (!isKwizFile && !hasApiKey)}
                 onPress={() => {
                   onCreate({
                     questionType,
@@ -366,6 +368,11 @@ const NewQuizModal: React.FC<NewQuizModalProps> = ({
               </TuiButton>
             </div>
           </div>
+          {!isKwizFile && !hasApiKey && (
+            <p className="text-[10px] text-destructive font-bold text-center mt-2 font-mono">
+              * Mistral API key is required to generate quizzes. Set it up using the "AI Setup" panel.
+            </p>
+          )}
         </TuiContainer>
       </div>
     </div>
@@ -721,6 +728,18 @@ export default function App() {
           console.error('Failed to read .kwiz file:', err);
           alert('Failed to read .kwiz file: ' + err);
         });
+      return;
+    }
+
+    if (!apiKey) {
+      setDialog({
+        visible: true,
+        title: 'API Key Required',
+        message: 'Please set your Mistral API key in Settings (AI Setup button in the status panel) first.',
+        type: 'alert',
+        confirmText: 'OK',
+        onConfirm: () => setDialog((p) => ({ ...p, visible: false })),
+      });
       return;
     }
 
@@ -1180,14 +1199,7 @@ export default function App() {
                                 key={ci}
                                 disabled={isLocked}
                                 onClick={() => {
-                                  if (isSelected) {
-                                    // second click = lock in
-                                    handleLockIn();
-                                  } else {
-                                    const next = [...userAnswers];
-                                    next[currentIndex] = choice;
-                                    setUserAnswers(next);
-                                  }
+                                  handleLockIn(choice);
                                 }}
                                 className={`w-full border-[1.5px] ${borderCls} ${bgCls} px-5 py-4 text-left flex items-center gap-4 cursor-pointer disabled:cursor-default transition-colors`}
                               >
@@ -1244,7 +1256,6 @@ export default function App() {
                       <TuiButton
                         onPress={handleNext}
                         variant={currentIndex + 1 === totalQ ? 'accent' : 'outline'}
-                        disabled={currentQuestion.type === 'multiple_choice' && !selectedAnswer}
                         className="!w-auto px-4"
                       >
                         {currentIndex + 1 === totalQ ? 'Finish' : <ChevronRight size={16} />}
@@ -1334,6 +1345,7 @@ export default function App() {
       <NewQuizModal
         visible={showNewQuizModal}
         onClose={() => setShowNewQuizModal(false)}
+        hasApiKey={!!apiKey}
         onCreate={handleCreateQuiz}
       />
 

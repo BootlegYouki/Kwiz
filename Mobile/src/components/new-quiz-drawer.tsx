@@ -14,6 +14,7 @@ import { extractText } from 'expo-pdf-text-extract';
 interface NewQuizDrawerProps {
   visible: boolean;
   onClose: () => void;
+  hasApiKey: boolean;
   onCreate: (config: {
     questionType: QuizSet['questionType'];
     count: number;
@@ -22,7 +23,7 @@ interface NewQuizDrawerProps {
   }) => void;
 }
 
-export const NewQuizDrawer: React.FC<NewQuizDrawerProps> = ({ visible, onClose, onCreate }) => {
+export const NewQuizDrawer: React.FC<NewQuizDrawerProps> = ({ visible, onClose, hasApiKey, onCreate }) => {
   const { colors } = useTheme();
   const [questionType, setQuestionType] = useState<QuizSet['questionType']>('multiple_choice');
   const [count, setCount] = useState(10);
@@ -176,11 +177,16 @@ export const NewQuizDrawer: React.FC<NewQuizDrawerProps> = ({ visible, onClose, 
               </TuiButton>
             </View>
             <View style={{ flex: 1, marginLeft: 8 }}>
-              <TuiButton onPress={handleCreate} variant="accent" disabled={isExtracting}>
+              <TuiButton onPress={handleCreate} variant="accent" disabled={isExtracting || (!isKwizFile && !hasApiKey)}>
                 Create
               </TuiButton>
             </View>
           </View>
+          {!isKwizFile && !hasApiKey && (
+            <TuiText size="xs" style={{ color: colors.destructive, textAlign: 'center', marginTop: 8 }} variant="destructive">
+              * Mistral API key is required to generate quizzes. Set it in Settings.
+            </TuiText>
+          )}
         </View>
     </TuiDrawer>
   );

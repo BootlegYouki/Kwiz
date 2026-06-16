@@ -61,6 +61,16 @@ function MainApp() {
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [newQuizName, setNewQuizName] = useState('');
 
+  const [hasApiKey, setHasApiKey] = useState(false);
+
+  useEffect(() => {
+    async function checkKey() {
+      const key = await SecureStore.getItemAsync('kwiz_mistral_api_key');
+      setHasApiKey(!!key);
+    }
+    checkKey();
+  }, [drawerOpen, activeTab]);
+
   // Splash screen states
   const [dataLoaded, setDataLoaded] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
@@ -528,6 +538,7 @@ ${config.customPrompt ? `Custom guidelines: ${config.customPrompt}` : ''}`;
         <NewQuizDrawer
           visible={drawerOpen}
           onClose={() => setDrawerOpen(false)}
+          hasApiKey={hasApiKey}
           onCreate={handleCreateQuiz}
         />
 

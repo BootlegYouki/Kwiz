@@ -30,13 +30,7 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
 
   const handleChoicePress = (choice: string) => {
     if (isLocked) return;
-    if (selectedAnswer === choice) {
-      handleLockIn();
-    } else {
-      const nextAnswers = [...userAnswers];
-      nextAnswers[currentIndex] = choice;
-      setUserAnswers(nextAnswers);
-    }
+    handleLockIn(choice);
   };
 
   const handleLockIn = (overrideValue?: string) => {
@@ -327,7 +321,6 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
           <TuiButton
             onPress={handleNext}
             variant={currentIndex + 1 === totalQuestions ? 'accent' : 'outline'}
-            disabled={currentQuestion.type === 'multiple_choice' && !selectedAnswer}
             style={styles.halfBtn}
             fullWidth={false}
           >
