@@ -25,7 +25,7 @@ export const TuiButton: React.FC<TuiButtonProps> = ({
 }) => {
   const getVariantClasses = () => {
     if (disabled) {
-      return 'bg-[#18181b] border-[#27272a] text-[#52525b] cursor-not-allowed';
+      return 'bg-card border-border text-muted opacity-50 cursor-not-allowed';
     }
 
     switch (variant) {
@@ -40,13 +40,15 @@ export const TuiButton: React.FC<TuiButtonProps> = ({
     }
   };
 
+  const widthClass = className.split(' ').some(cls => cls.startsWith('w-')) ? '' : 'w-full';
+
   return (
     <button
       type={type}
       title={title}
       disabled={disabled || loading}
       onClick={onPress}
-      className={`border-[1.5px] font-bold text-center text-sm py-2 px-4 cursor-pointer flex items-center justify-center min-h-[40px] select-none w-full ${getVariantClasses()} ${className}`}
+      className={`border-[1.5px] font-bold text-center text-sm py-2 px-4 cursor-pointer flex items-center justify-center min-h-[40px] select-none ${widthClass} ${getVariantClasses()} ${className}`}
       style={style}
     >
       {loading ? (

@@ -6,11 +6,11 @@
   
   --color-primary: #a855f7; /* Retro purple accent */
   --color-primary-foreground: #000000; /* Contrast text on primary bg */
-  --color-background: #09090b; /* True dark background */
-  --color-card: #18181b; /* Card background */
+  --color-background: #18181b; /* Matches BootHub background */
+  --color-card: #18181b; /* Card background matches background */
   --color-border: #52525b; /* Border color */
-  --color-foreground: #f4f4f5; /* Light gray text */
-  --color-muted: #71717a; /* Muted text */
+  --color-foreground: #fafafa; /* Lighter white text */
+  --color-muted: #a1a1aa; /* Matches BootHub muted color */
   --color-destructive: #ef4444; /* Alert color */
 }
 

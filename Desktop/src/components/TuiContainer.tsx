@@ -36,15 +36,15 @@ export const TuiContainer: React.FC<TuiContainerProps> = ({
     : 'text-foreground';
 
   return (
-    <div
+    <fieldset
       onClick={onPress}
-      className={`group w-full min-w-0 relative border-[1.5px] bg-card text-foreground ${borderClass} ${
+      className={`group w-full min-w-0 border-[1.5px] bg-card text-foreground ${borderClass} ${
         onPress ? 'cursor-pointer hover:scale-[1.01] active:scale-[0.99]' : ''
       }`}
       style={style}
     >
       {(label || badge) && (
-        <div className={`absolute -top-[10px] left-4 px-2 bg-card font-bold text-xs select-none flex items-center gap-2 z-10 ${legendClass}`}>
+        <legend className={`ml-4 px-2 font-bold text-xs select-none flex items-center gap-2 ${legendClass}`}>
           {label}
           {badge && (
             <span
@@ -61,11 +61,11 @@ export const TuiContainer: React.FC<TuiContainerProps> = ({
               {badge}
             </span>
           )}
-        </div>
+        </legend>
       )}
       <div className={noPadding ? '' : 'p-3'} style={contentStyle}>
         {children}
       </div>
-    </div>
+    </fieldset>
   );
 };

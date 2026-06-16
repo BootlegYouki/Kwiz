@@ -25,7 +25,7 @@ interface TitleBarProps {
 let cachedMaximizedState = false;
 
 export const TitleBar: React.FC<TitleBarProps> = ({
-  title = 'BootHub',
+  title = 'Kwiz',
   icon: Icon,
   className,
   iconSize = 'size-5',
@@ -91,7 +91,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
 
         {/* Centered title */}
         {title && (
-          <div className="titlebar-title font-bold font-mono" data-tauri-drag-region>
+          <div className="titlebar-title font-medium font-sans" data-tauri-drag-region>
             {title}
           </div>
         )}
@@ -135,7 +135,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
       <TuiAlertModal
         visible={showCloseConfirm}
         title="Exit Application"
-        message="Are you sure you want to close BootHub Desktop?"
+        message="Are you sure you want to close Kwiz Desktop?"
         type="confirm"
         confirmText="Exit"
         cancelText="Cancel"

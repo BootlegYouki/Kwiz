@@ -1,5 +1,4 @@
 import React from 'react';
-import { TuiContainer } from './TuiContainer';
 import { TuiButton } from './TuiButton';
 
 interface TuiAlertModalProps {
@@ -28,33 +27,32 @@ export const TuiAlertModal: React.FC<TuiAlertModalProps> = ({
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 animate-in fade-in duration-100 select-none">
-      <div className="w-full max-w-sm">
-        <TuiContainer label={title} disableHover={true}>
-          <div className="py-2">
-            <p className="text-sm font-mono leading-relaxed mb-6 text-foreground break-words whitespace-pre-wrap">
-              {message}
-            </p>
-            <div className="flex gap-4">
-              {type === 'confirm' && onCancel && (
-                <TuiButton
-                  onPress={onCancel}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  {cancelText}
-                </TuiButton>
-              )}
-              <TuiButton
-                onPress={onConfirm}
-                variant={isDestructive ? 'destructive' : 'accent'}
-                className="flex-1"
-              >
-                {confirmText}
-              </TuiButton>
-            </div>
-          </div>
-        </TuiContainer>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/80 p-4 animate-in fade-in duration-100 select-none">
+      <div className="w-full max-w-sm border-[1.5px] border-primary bg-card p-6">
+        <div className="border-b-[1.5px] border-primary pb-2 mb-4">
+          <span className="font-bold text-xs uppercase text-primary">[ {title} ]</span>
+        </div>
+        <p className="text-sm font-mono leading-relaxed mb-6 text-foreground break-words whitespace-pre-wrap">
+          {message}
+        </p>
+        <div className="flex gap-4">
+          {type === 'confirm' && onCancel && (
+            <TuiButton
+              onPress={onCancel}
+              variant="outline"
+              className="flex-1"
+            >
+              {cancelText}
+            </TuiButton>
+          )}
+          <TuiButton
+            onPress={onConfirm}
+            variant={isDestructive ? 'destructive' : 'accent'}
+            className="flex-1"
+          >
+            {confirmText}
+          </TuiButton>
+        </div>
       </div>
     </div>
   );

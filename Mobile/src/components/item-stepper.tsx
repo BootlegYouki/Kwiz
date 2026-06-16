@@ -16,7 +16,7 @@ export const ItemStepper: React.FC<ItemStepperProps> = ({
   value,
   onChange,
   min = 5,
-  max = 20,
+  max = 100,
   step = 5,
   disabled = false,
 }) => {

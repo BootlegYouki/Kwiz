@@ -97,7 +97,7 @@ export const QuizCard: React.FC<QuizCardProps> = ({ quiz, onPress, onLongPress }
       style={{ transform: [{ scale: scaleAnim }], width: '100%' }}
     >
       <Pressable 
-        disabled={quiz.status !== 'ready'} 
+        disabled={quiz.status === 'generating'} 
         onPress={onPress} 
         onLongPress={handleLongPress}
         onPressIn={handlePressIn}
@@ -108,7 +108,6 @@ export const QuizCard: React.FC<QuizCardProps> = ({ quiz, onPress, onLongPress }
         {({ pressed }) => (
           <TuiContainer 
             label={formatDate(quiz.createdAt)} 
-            badge={getBadgeText()}
             accentBorder={quiz.status === 'generating'}
           >
             <View style={styles.cardBody}>

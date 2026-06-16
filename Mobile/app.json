@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "Dev Client",
-    "slug": "dev-client",
+    "name": "Kwiz",
+    "slug": "kwiz",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "scheme": "tuitemplatenative",
+    "scheme": "kwiz",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bootlegyouki.devclient",
+      "bundleIdentifier": "com.bootlegyouki.kwiz",
       "icon": {
         "light": "./assets/icon.png",
         "dark": "./assets/icon.png",
