@@ -59,6 +59,7 @@ if not os.path.exists(icon_path):
     exit(1)
 
 img = Image.open(icon_path).convert("RGB")
+img = img.point(lambda p: 255 if p > 50 else 0)
 width, height = img.size
 
 # Find bounding box of white logo
