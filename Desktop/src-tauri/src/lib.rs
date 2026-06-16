@@ -9,8 +9,6 @@ use tauri_plugin_autostart::ManagerExt;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
-mod ollama_commands;
-
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -167,105 +165,85 @@ async fn check_markitdown() -> bool {
 }
 
 #[tauri::command]
-async fn check_llama(port: u16) -> bool {
-    let client = reqwest::Client::new();
-    let health_url = format!("http://127.0.0.1:{}/health", port);
-    let models_url = format!("http://127.0.0.1:{}/v1/models", port);
-    let tags_url = format!("http://127.0.0.1:{}/api/tags", port);
-    let root_url = format!("http://127.0.0.1:{}/", port);
+async fn convert_to_markdown(file_path: String) -> Result<String, String> {
+    let mut cmd = std::process::Command::new("markitdown");
+    cmd.arg(&file_path);
+    #[cfg(target_os = "windows")]
+    {
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    let output = cmd.output()
+        .map_err(|e| format!("Failed to run markitdown: {}. Make sure it is installed via 'pip install markitdown'.", e))?;
     
-    if let Ok(resp) = client.get(&health_url).send().await {
-        if resp.status().is_success() {
-            return true;
-        }
-    }
-    
-    if let Ok(resp) = client.get(&models_url).send().await {
-        if resp.status().is_success() {
-            return true;
-        }
-    }
-
-    if let Ok(resp) = client.get(&tags_url).send().await {
-        if resp.status().is_success() {
-            return true;
-        }
-    }
-
-    if let Ok(resp) = client.get(&root_url).send().await {
-        if resp.status().is_success() {
-            if let Ok(text) = resp.text().await {
-                if text.contains("Ollama is running") {
-                    return true;
-                }
-            }
-        }
+    if !output.status.success() {
+        let err_msg = String::from_utf8_lossy(&output.stderr).to_string();
+        return Err(format!("markitdown failed: {}", err_msg));
     }
     
-    false
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
+
+
 
 #[tauri::command]
 async fn generate_quiz(
-    file_path: Option<String>,
+    markdown_content: String,
     prompt: Option<String>,
     question_type: String,
     count: u32,
-    llama_port: u16,
+    api_key: Option<String>,
 ) -> Result<String, String> {
-    // 1. Get content from file using markitdown, or use prompt
-    let markdown_content = if let Some(path) = file_path {
-        let mut cmd = std::process::Command::new("markitdown");
-        cmd.arg(&path);
-        #[cfg(target_os = "windows")]
-        {
-            const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-            cmd.creation_flags(CREATE_NO_WINDOW);
-        }
-        let output = cmd.output()
-            .map_err(|e| format!("Failed to run markitdown: {}. Make sure it is installed via 'pip install markitdown'.", e))?;
-        
-        if !output.status.success() {
-            let err_msg = String::from_utf8_lossy(&output.stderr).to_string();
-            return Err(format!("markitdown failed: {}", err_msg));
-        }
-        
-        String::from_utf8_lossy(&output.stdout).to_string()
-    } else if let Some(p) = prompt.clone() {
-        p
+    let source_content = if markdown_content.trim().is_empty() {
+        prompt.clone().unwrap_or_default()
     } else {
-        return Err("Neither file_path nor prompt was provided.".to_string());
+        markdown_content
     };
+
+    if source_content.trim().is_empty() {
+        return Err("No source content or prompt provided for quiz generation.".to_string());
+    }
 
     // 2. Build the system prompt instructions based on type
     let instructions = match question_type.as_str() {
-        "multiple_choice" => format!("Generate exactly {} questions of type mc (multiple choice). Each must have 'k': 'mc', 'q': '<question text>', 'c': [<4 options as strings>], and 'a': '<correct option letter: A, B, C, or D>'.", count),
-        "identification" => format!("Generate exactly {} questions of type id (identification). Each must have 'k': 'id', 'q': '<question text>', 'a': '<text answer>', and 'n': <integer character count of the answer>.", count),
-        "hybrid" => format!("Generate exactly {} questions alternating between mc (multiple choice) and id (identification) types. MC questions must have 'k': 'mc', 'q': '<question text>', 'c': [<4 options as strings>], and 'a': '<correct option letter: A, B, C, or D>'. ID questions must have 'k': 'id', 'q': '<question text>', 'a': '<text answer>', and 'n': <integer character count of the answer>.", count),
+        "multiple_choice" => format!("Generate exactly {} questions of type mc (multiple choice). Each must have 'k': 'mc', 'q': '<question text>', 'c' (an array of 4 choices), and 'a': '<correct option letter: A, B, C, or D>'.", count),
+        "identification" => format!("Generate exactly {} questions of type id (identification). Each must have 'k': 'id', 'q': '<question text>', 'a': '<text answer>', and 'n': <integer character count of the answer>. Crucial: The text answer ('a') must be short, containing at most 3 words.", count),
+        "hybrid" => format!("Generate exactly {} questions alternating between mc (multiple choice) and id (identification) types. Crucial: All identification answers ('a') must be short, containing at most 3 words.", count),
         _ => format!("Generate exactly {} questions.", count),
     };
 
     let system_prompt = format!(
-        "You are a quiz generator. Output ONLY compact JSON with no markdown fences, no formatting, no prefix, no suffix. \
-        Format: {{\"t\":\"<quiz title>\",\"qs\":[{{\"k\":\"mc\",\"q\":\"...\",\"c\":[\"A\",\"B\",\"C\",\"D\"],\"a\":\"A\"}},{{\"k\":\"id\",\"q\":\"...\",\"a\":\"answer\",\"n\":6}}]}} \
-        {} from the following content. \
-        {}",
+        "You are a quiz generator. Output ONLY valid TOON (Token-Oriented Object Notation) with no markdown fences, no formatting, no prefix, no suffix. \
+You MUST generate ALL {} questions — do not stop early, do not truncate, do not summarize. Stopping before {} questions is a failure. \
+Crucial: Every array item under `qs[N]:` must be indented with exactly 2 spaces, and its properties (k, q, c, a, n) must be indented with exactly 4 spaces. \
+Crucial: The choices in `c[4]` must ALWAYS be wrapped in double quotes (e.g., c[4]: \"choice A\",\"choice B\",\"choice C\",\"choice D\") to handle commas safely.
+
+Format Example:
+t: <quiz title>
+qs[{}]:
+  - k: mc
+    q: <question text>
+    c[4]: \"<option A>\",\"<option B>\",\"<option C>\",\"<option D>\"
+    a: <correct option letter: A, B, C, or D>
+  - k: id
+    q: <question text>
+    a: <text answer>
+    n: <integer character count of answer>
+
+{} from the following content.
+{}",
+        count,
+        count,
+        count,
         instructions,
         prompt.map(|p| format!("Custom guidelines: {}", p)).unwrap_or_default()
     );
 
-    // 3. Construct request to local LLM OpenAI-compatible API
+    // 3. Construct request (Mistral only)
     let client = reqwest::Client::new();
-    let url = format!("http://127.0.0.1:{}/v1/chat/completions", llama_port);
-
-    let model_name = if llama_port == 11434 {
-        "gpt-oss:20b-cloud"
-    } else {
-        "local-model"
-    };
 
     let request_body = serde_json::json!({
-        "model": model_name,
+        "model": "mistral-large-latest",
         "messages": [
             {
                 "role": "system",
@@ -273,32 +251,38 @@ async fn generate_quiz(
             },
             {
                 "role": "user",
-                "content": format!("Content:\n{}", markdown_content)
+                "content": format!("Content:\n{}", source_content)
             }
         ],
         "temperature": 0.3,
-        "response_format": { "type": "json_object" }
+        // Each question is ~100-200 tokens; give generous headroom per question
+        "max_tokens": (count * 300).max(4096)
     });
 
-    let resp = client.post(&url)
-        .json(&request_body)
+    let key = api_key.ok_or_else(|| "Mistral API key is required.".to_string())?;
+    let request_builder = client
+        .post("https://api.mistral.ai/v1/chat/completions")
+        .header("Authorization", format!("Bearer {}", key))
+        .json(&request_body);
+
+    let resp = request_builder
         .send()
         .await
-        .map_err(|e| format!("Failed to connect to llama.cpp on port {}: {}", llama_port, e))?;
+        .map_err(|e| format!("Failed to connect to LLM API endpoint: {}", e))?;
 
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        return Err(format!("llama.cpp returned error status {}: {}", status, body));
+        return Err(format!("LLM API returned error status {}: {}", status, body));
     }
 
     let resp_json: serde_json::Value = resp.json().await
-        .map_err(|e| format!("Failed to parse response JSON from llama.cpp: {}", e))?;
+        .map_err(|e| format!("Failed to parse response JSON from LLM: {}", e))?;
 
     // Extract content from response
     let content = resp_json["choices"][0]["message"]["content"]
         .as_str()
-        .ok_or_else(|| format!("Invalid response structure from llama.cpp: {:?}", resp_json))?;
+        .ok_or_else(|| format!("Invalid response structure from LLM: {:?}", resp_json))?;
 
     Ok(content.to_string())
 }
@@ -334,14 +318,6 @@ pub fn run() {
             }
         })
         .setup(|app| {
-            let app_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                ollama_commands::ensure_ollama_ready_during_boot(
-                    &app_handle,
-                    std::time::Duration::from_secs(20),
-                )
-                .await;
-            });
 
             let show_i = MenuItem::with_id(app, "show", "Open Kwiz", true, None::<&str>)?;
             let sync_i = MenuItem::with_id(app, "sync", "Sync Now", true, None::<&str>)?;
@@ -427,23 +403,14 @@ pub fn run() {
             greet,
             start_oauth_server,
             check_markitdown,
-            check_llama,
+            convert_to_markdown,
             generate_quiz,
             read_kwiz_file,
             write_kwiz_file,
-            ollama_commands::get_ollama_setup_status,
-            ollama_commands::get_ollama_install_log,
-            ollama_commands::launch_ollama_setup_step,
-            ollama_commands::start_ollama_background,
-            ollama_commands::uninstall_managed_ollama
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
-    app.run(|app_handle, event| {
-        if let tauri::RunEvent::Exit = event {
-            ollama_commands::cleanup_managed_ollama_on_exit(app_handle);
-        }
-    });
+    app.run(|_app_handle, _event| {});
 }
 

@@ -30,17 +30,12 @@ import { open, save } from '@tauri-apps/plugin-dialog';
 import {
   generateQuiz,
   checkMarkitdown,
-  checkLlama,
+  convertToMarkdown,
   readKwizFile,
   writeKwizFile,
-  getOllamaSetupStatus,
-  launchOllamaSetupStep,
-  getOllamaInstallLog,
-  startOllamaBackground,
-  uninstallManagedOllama,
-  OllamaSetupStatus
 } from './utils/llm';
 import { parseMaytoon } from './utils/quiz-parser';
+import { decode as decodeToon } from '@toon-format/toon';
 
 
 // ─── Accent palette (same as BootHub to preserve theme system) ───────────────
@@ -180,58 +175,88 @@ const RenameQuizModal: React.FC<RenameQuizModalProps> = ({ visible, onClose, qui
 
 // ─── New Quiz Modal ───────────────────────────────────────────────────────────
 
+interface Attachment {
+  name: string;
+  path: string;
+  content?: string;
+  status: 'idle' | 'converting' | 'ready' | 'error';
+  error?: string;
+}
+
 interface NewQuizModalProps {
   visible: boolean;
   onClose: () => void;
-  llamaPort: number;
-  setLlamaPort: (port: number) => void;
-  llamaAvailable: boolean | null;
-  markitdownAvailable: boolean | null;
   onCreate: (config: {
     questionType: QuizSet['questionType'];
     count: number;
     customPrompt: string;
-    attachment: { name: string; path: string } | null;
+    attachments: Attachment[];
   }) => void;
 }
 
 const NewQuizModal: React.FC<NewQuizModalProps> = ({
   visible,
   onClose,
-  llamaPort,
-  setLlamaPort,
-  llamaAvailable,
-  markitdownAvailable,
   onCreate,
 }) => {
   const [questionType, setQuestionType] = useState<QuizSet['questionType']>('multiple_choice');
   const [count, setCount] = useState(10);
   const [customPrompt, setCustomPrompt] = useState('');
-  const [attachment, setAttachment] = useState<{ name: string; path: string } | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   useEffect(() => {
     if (!visible) {
       setQuestionType('multiple_choice');
       setCount(10);
       setCustomPrompt('');
-      setAttachment(null);
+      setAttachments([]);
     }
   }, [visible]);
 
   const handlePickFile = async () => {
     try {
       const selected = await open({
+        multiple: true,
         filters: [{
           name: 'Quiz Documents',
           extensions: ['pdf', 'pptx', 'kwiz']
         }]
       });
-      if (selected && typeof selected === 'string') {
-        const name = selected.split(/[\\/]/).pop() || selected;
-        setAttachment({
-          name,
-          path: selected
-        });
+      if (selected) {
+        const paths = Array.isArray(selected) ? selected : [selected];
+        
+        // If a .kwiz file is picked, it should be the only attachment
+        const hasKwiz = paths.some(p => p.toLowerCase().endsWith('.kwiz'));
+        if (hasKwiz) {
+          const kwizPath = paths.find(p => p.toLowerCase().endsWith('.kwiz'))!;
+          const name = kwizPath.split(/[\\/]/).pop() || kwizPath;
+          setAttachments([{ name, path: kwizPath, status: 'ready' }]);
+        } else {
+          // Add new documents and filter out any existing .kwiz
+          const newAttachments: Attachment[] = paths.map(p => {
+            const name = p.split(/[\\/]/).pop() || p;
+            return { name, path: p, status: 'converting' };
+          });
+
+          setAttachments(prev => {
+            const filtered = prev.filter(att => !att.name.toLowerCase().endsWith('.kwiz'));
+            return [...filtered, ...newAttachments];
+          });
+
+          // Trigger conversion immediately for each added file
+          newAttachments.forEach(async (att) => {
+            try {
+              const md = await convertToMarkdown(att.path);
+              setAttachments(prev => prev.map(item => 
+                item.path === att.path ? { ...item, status: 'ready', content: md } : item
+              ));
+            } catch (err: any) {
+              setAttachments(prev => prev.map(item => 
+                item.path === att.path ? { ...item, status: 'error', error: err?.message || err || 'Failed to convert' } : item
+              ));
+            }
+          });
+        }
       }
     } catch (err) {
       console.error('Failed to open file dialog:', err);
@@ -240,7 +265,9 @@ const NewQuizModal: React.FC<NewQuizModalProps> = ({
 
   if (!visible) return null;
 
-  const isKwizFile = !!(attachment && attachment.name.endsWith('.kwiz'));
+  const isKwizFile = attachments.some(att => att.name.toLowerCase().endsWith('.kwiz'));
+  const isConverting = attachments.some(att => att.status === 'converting');
+  const hasErrors = attachments.some(att => att.status === 'error');
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 select-none animate-in fade-in duration-100">
@@ -251,32 +278,40 @@ const NewQuizModal: React.FC<NewQuizModalProps> = ({
           style={{ display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}
           contentStyle={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', padding: '20px' }}
         >
-          {/* 1. Attachment */}
-          <div className="flex flex-col gap-1.5">
-            {attachment ? (
-              <div className="flex items-center justify-between border-[1.5px] border-primary bg-primary/5 p-3">
-                <div className="flex-1 truncate mr-2">
-                  <span className="text-sm font-bold text-foreground truncate block">{attachment.name}</span>
-                  {attachment.name.endsWith('.pptx') && (
-                    <span className="text-[10px] text-primary font-bold font-mono">* PPTX (will convert via markitdown)</span>
+          {/* 1. Attachments */}
+          <div className="flex flex-col gap-2">
+            {attachments.map((att, idx) => (
+              <div key={idx} className="flex items-center justify-between border-[1.5px] border-primary bg-primary/5 p-2.5 font-mono">
+                <div className="flex-1 truncate mr-2 flex flex-col gap-0.5">
+                  <span className="text-xs font-bold text-foreground truncate block">{att.name}</span>
+                  {att.status === 'converting' && (
+                    <span className="text-[10px] text-yellow-500 font-bold animate-pulse">Converting to markdown...</span>
+                  )}
+                  {att.status === 'ready' && (
+                    <span className="text-[10px] text-green-500 font-bold">Ready</span>
+                  )}
+                  {att.status === 'error' && (
+                    <span className="text-[10px] text-destructive font-bold truncate">Error: {att.error}</span>
                   )}
                 </div>
                 <button
                   type="button"
-                  onClick={() => setAttachment(null)}
+                  onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
                   className="p-1 hover:bg-destructive/10 text-destructive cursor-pointer transition-colors"
                   title="Remove file"
                 >
-                  <X className="w-4.5 h-4.5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            ) : (
+            ))}
+            
+            {!isKwizFile && (
               <button
                 type="button"
                 onClick={handlePickFile}
-                className="w-full border-[1.5px] border-dashed border-primary text-primary py-3.5 hover:bg-primary/10 cursor-pointer text-xs font-bold transition-all text-center"
+                className="w-full border-[1.5px] border-dashed border-primary text-primary py-2.5 hover:bg-primary/10 cursor-pointer text-xs font-bold transition-all text-center"
               >
-                Attach PDF, PPTX or .kwiz
+                {attachments.length > 0 ? "+ Add More Files (PDF, PPTX)" : "Attach PDF, PPTX or .kwiz"}
               </button>
             )}
           </div>
@@ -310,48 +345,8 @@ const NewQuizModal: React.FC<NewQuizModalProps> = ({
             />
           </div>
 
-          {/* 4. Connection Status & Config */}
-          <div className="border-[1.5px] border-border p-3 flex flex-col gap-2 bg-card/30">
-            <span className="text-[10px] uppercase font-bold text-muted">Connection Status</span>
-            
-            <div className="flex flex-wrap items-center justify-between gap-4 text-[11px]">
-              <div className="flex items-center gap-1.5 font-mono">
-                <span>markitdown:</span>
-                {markitdownAvailable === null ? (
-                  <span className="text-muted">checking...</span>
-                ) : markitdownAvailable ? (
-                  <span className="text-green-500 font-bold">FOUND</span>
-                ) : (
-                  <span className="text-destructive font-bold">NOT FOUND</span>
-                )}
-              </div>
 
-              <div className="flex items-center gap-1.5 font-mono">
-                <span>Local AI:</span>
-                {llamaAvailable === null ? (
-                  <span className="text-muted">checking...</span>
-                ) : llamaAvailable ? (
-                  <span className="text-green-500 font-bold">ONLINE</span>
-                ) : (
-                  <span className="text-destructive font-bold">OFFLINE</span>
-                )}
-              </div>
-              
-              <div className="flex items-center gap-1.5">
-                <span className="font-mono text-muted">Port:</span>
-                <input
-                  type="number"
-                  value={llamaPort}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value) || 8080;
-                    setLlamaPort(val);
-                    localStorage.setItem('kwiz_llama_port', val.toString());
-                  }}
-                  className="w-16 border-[1.5px] border-border bg-card px-1.5 py-0.5 text-center font-mono text-[11px] focus:outline-none focus:border-primary text-foreground"
-                />
-              </div>
-            </div>
-          </div>
+
 
           {/* Action Row */}
           <div className="flex gap-4 mt-2">
@@ -362,12 +357,13 @@ const NewQuizModal: React.FC<NewQuizModalProps> = ({
             </div>
             <div className="flex-1">
               <TuiButton
+                disabled={isConverting || hasErrors || (attachments.length === 0 && !customPrompt.trim())}
                 onPress={() => {
                   onCreate({
                     questionType,
                     count,
                     customPrompt,
-                    attachment,
+                    attachments,
                   });
                 }}
                 variant="accent"
@@ -385,276 +381,37 @@ const NewQuizModal: React.FC<NewQuizModalProps> = ({
 interface AiSetupModalProps {
   visible: boolean;
   onClose: () => void;
-  llamaPort: number;
-  setLlamaPort: (port: number) => void;
-  llamaAvailable: boolean | null;
-  ollamaServiceOnline: boolean | null;
-  markitdownAvailable: boolean | null;
+  apiKey: string;
+  setApiKey: (k: string) => void;
 }
 
-const AiSetupModal: React.FC<AiSetupModalProps> = ({
-  visible,
-  onClose,
-  llamaPort,
-  setLlamaPort,
-  llamaAvailable,
-  ollamaServiceOnline,
-  markitdownAvailable,
-}) => {
-  const [status, setStatus] = useState<OllamaSetupStatus | null>(null);
-  const [installLog, setInstallLog] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-
-  const refreshStatus = async () => {
-    try {
-      const s = await getOllamaSetupStatus();
-      setStatus(s);
-    } catch (err: any) {
-      console.error('Failed to get Ollama status:', err);
-    }
-  };
-
-  const refreshLog = async () => {
-    try {
-      const log = await getOllamaInstallLog();
-      setInstallLog(log || '');
-    } catch (err: any) {
-      console.error('Failed to get Ollama log:', err);
-    }
-  };
-
-  useEffect(() => {
-    if (!visible) return;
-    refreshStatus();
-    refreshLog();
-
-    const interval = setInterval(() => {
-      refreshStatus();
-      refreshLog();
-    }, 1500);
-
-    return () => clearInterval(interval);
-  }, [visible]);
-
+const AiSetupModal: React.FC<AiSetupModalProps> = ({ visible, onClose, apiKey, setApiKey }) => {
   if (!visible) return null;
-
-  const handleInstall = async () => {
-    setBusy(true);
-    setErrorMsg('');
-    try {
-      await launchOllamaSetupStep('install');
-      await refreshStatus();
-    } catch (err: any) {
-      setErrorMsg(err?.message || err || 'Failed to start install');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleSignin = async () => {
-    setBusy(true);
-    setErrorMsg('');
-    try {
-      await launchOllamaSetupStep('signin');
-      await refreshStatus();
-    } catch (err: any) {
-      setErrorMsg(err?.message || err || 'Failed to start signin');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleStartBackground = async () => {
-    setBusy(true);
-    setErrorMsg('');
-    try {
-      await startOllamaBackground();
-      await refreshStatus();
-    } catch (err: any) {
-      setErrorMsg(err?.message || err || 'Failed to start Ollama');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleUninstall = async () => {
-    if (!confirm('Are you sure you want to uninstall managed Ollama and clear your local login session?')) return;
-    setBusy(true);
-    setErrorMsg('');
-    try {
-      await uninstallManagedOllama();
-      setInstallLog('');
-      await refreshStatus();
-    } catch (err: any) {
-      setErrorMsg(err?.message || err || 'Failed to uninstall Ollama');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // Reused progress parser from POS
-  const getInstallProgress = () => {
-    const lines = installLog.split('\n').map(l => l.trim()).filter(Boolean);
-    const latest = lines.at(-1) || '';
-    const norm = latest.toLowerCase();
-
-    if (!latest) return { label: 'Preparing lightweight Ollama setup...', val: 8 };
-    if (norm.includes('install failed')) return { label: latest, val: 100 };
-    if (norm.includes('started ollama serve')) return { label: 'Ollama service started.', val: 100 };
-
-    if (norm.includes('starting lightweight ollama install')) return { label: 'Preparing installer...', val: 15 };
-    if (norm.includes('downloading standalone zip')) return { label: 'Downloading Ollama standalone zip...', val: 45 };
-    if (norm.includes('extracting zip')) return { label: 'Extracting Ollama files...', val: 75 };
-    if (norm.includes('starting ollama serve')) return { label: 'Starting Ollama service...', val: 90 };
-
-    return { label: latest, val: 50 };
-  };
-
-  const progress = getInstallProgress();
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 select-none animate-in fade-in duration-100">
       <div className="w-full max-w-md">
         <TuiContainer
-          label="Ollama / Local AI Setup"
+          label="AI Engine Setup"
           disableHover={true}
           contentStyle={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '20px' }}
         >
-          <div className="flex flex-col gap-3 font-mono text-xs">
-            <p className="text-[11px] text-muted leading-relaxed mb-1">
-              Kwiz can download a lightweight Ollama setup, run the service, and handle your sign-in directly.
+          <div className="flex flex-col gap-4 font-mono text-xs">
+            <p className="text-[11px] text-muted leading-relaxed">
+              Connect to Mistral AI cloud models for lightning-fast, high-quality quiz generations.
             </p>
-
-            {/* 1. Status Details */}
             <div className="flex flex-col gap-2 border-[1.5px] border-border p-3 bg-card/30">
-              <span className="text-[10px] uppercase font-bold text-muted">Service & CLI Status</span>
-              
-              <div className="flex flex-col gap-2.5">
-                <div className="flex items-center justify-between">
-                  <span>markitdown (Parser):</span>
-                  {markitdownAvailable ? (
-                    <span className="text-green-500 font-bold">FOUND</span>
-                  ) : (
-                    <span className="text-destructive font-bold">NOT FOUND</span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span>Ollama CLI:</span>
-                  {status?.installed ? (
-                    <span className="text-green-500 font-bold">INSTALLED</span>
-                  ) : status?.install_in_progress ? (
-                    <span className="text-yellow-500 font-bold animate-pulse">INSTALLING</span>
-                  ) : (
-                    <span className="text-destructive font-bold">NOT FOUND</span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span>Ollama Service (Port 11434):</span>
-                  {ollamaServiceOnline ? (
-                    <span className="text-green-500 font-bold">ONLINE</span>
-                  ) : (
-                    <span className="text-destructive font-bold">OFFLINE</span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span>Ollama Cloud:</span>
-                  {status?.signed_in ? (
-                    <span className="text-green-500 font-bold">SIGNED IN</span>
-                  ) : (
-                    <span className="text-muted">NOT SIGNED IN</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Installation / Progress View */}
-            {status?.install_in_progress && (
-              <div className="flex flex-col gap-2 border-[1.5px] border-yellow-500/50 p-3 bg-yellow-500/5">
-                <span className="text-[10px] uppercase font-bold text-yellow-500">Installation Progress</span>
-                <span className="text-[10px] truncate">{progress.label}</span>
-                <div className="w-full bg-border h-1.5 overflow-hidden">
-                  <div
-                    className="bg-yellow-500 h-full transition-all duration-300"
-                    style={{ width: `${progress.val}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* 3. Error Alert */}
-            {errorMsg && (
-              <div className="text-[11px] text-destructive border border-destructive p-2.5 bg-destructive/10 leading-relaxed font-bold">
-                ERROR: {errorMsg}
-              </div>
-            )}
-
-            {/* 4. Action Controls */}
-            <div className="flex flex-col gap-2 border-[1.5px] border-border p-3 bg-card/30">
-              <span className="text-[10px] uppercase font-bold text-muted">Controls</span>
-              <div className="flex flex-col gap-2">
-                {!status?.installed && !status?.install_in_progress && (
-                  <button
-                    onClick={handleInstall}
-                    disabled={busy}
-                    className="w-full border-[1.5px] border-primary text-primary py-2 px-3 text-xs font-bold hover:bg-primary/20 cursor-pointer disabled:opacity-50"
-                  >
-                    Download & Install Ollama (Standalone)
-                  </button>
-                )}
-
-                {status?.installed && !ollamaServiceOnline && (
-                  <button
-                    onClick={handleStartBackground}
-                    disabled={busy}
-                    className="w-full border-[1.5px] border-primary text-primary py-2 px-3 text-xs font-bold hover:bg-primary/20 cursor-pointer disabled:opacity-50"
-                  >
-                    Start Ollama Service
-                  </button>
-                )}
-
-                {status?.installed && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleSignin}
-                      disabled={busy}
-                      className="flex-1 border-[1.5px] border-border text-foreground py-2 px-3 text-xs font-bold hover:border-primary hover:bg-primary/5 cursor-pointer disabled:opacity-50"
-                    >
-                      {status.signed_in ? 'Signed In (Re-auth)' : 'Sign-In (Ollama Cloud)'}
-                    </button>
-                    {status.managed_install && (
-                      <button
-                        onClick={handleUninstall}
-                        disabled={busy}
-                        className="border-[1.5px] border-destructive text-destructive py-2 px-3 text-xs font-bold hover:bg-destructive/10 cursor-pointer disabled:opacity-50"
-                      >
-                        Uninstall
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 5. Custom Port Configuration */}
-            <div className="flex items-center justify-between border-[1.5px] border-border p-3 bg-card/30">
-              <span className="text-[10px] uppercase font-bold text-muted">API Port Configuration</span>
-              <div className="flex items-center gap-1.5">
-                <span className="text-muted text-[10px]">Port:</span>
-                <input
-                  type="number"
-                  value={llamaPort}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value) || 8080;
-                    setLlamaPort(val);
-                    localStorage.setItem('kwiz_llama_port', val.toString());
-                  }}
-                  className="w-20 border-[1.5px] border-border bg-card px-2 py-0.5 text-center font-mono text-xs focus:outline-none focus:border-primary text-foreground"
-                />
-              </div>
+              <span className="font-bold text-[10px] uppercase text-muted">Mistral API Key</span>
+              <input
+                type="password"
+                placeholder="Enter your Mistral API key..."
+                value={apiKey}
+                onChange={(e) => {
+                  setApiKey(e.target.value);
+                  localStorage.setItem('kwiz_api_key', e.target.value);
+                }}
+                className="w-full border-[1.5px] border-border bg-card px-3 py-2 text-xs focus:outline-none focus:border-primary text-foreground font-mono"
+              />
             </div>
           </div>
 
@@ -708,10 +465,6 @@ export default function App() {
   const [typeFilter, setTypeFilter] = useState<QuizTypeFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewQuizModal, setShowNewQuizModal] = useState(false);
-  const [llamaPort, setLlamaPort] = useState<number>(() => {
-    const p = localStorage.getItem('kwiz_llama_port');
-    return p ? parseInt(p) : 8080;
-  });
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -721,27 +474,18 @@ export default function App() {
     visible: boolean;
     quiz: QuizSet;
   } | null>(null);
-  const [llamaAvailable, setLlamaAvailable] = useState<boolean | null>(null);
-  const [ollamaServiceOnline, setOllamaServiceOnline] = useState<boolean | null>(null);
-  const [markitdownAvailable, setMarkitdownAvailable] = useState<boolean | null>(null);
   const [showAiSetupModal, setShowAiSetupModal] = useState(false);
+  const [markitdownAvailable, setMarkitdownAvailable] = useState<boolean | null>(null);
+  const [apiKey, setApiKey] = useState<string>(() => {
+    return localStorage.getItem('kwiz_api_key') ?? '';
+  });
 
   useEffect(() => {
-    const checkStatus = () => {
-      checkMarkitdown().then(setMarkitdownAvailable);
-      checkLlama(llamaPort).then(setLlamaAvailable);
-      checkLlama(11434).then((online) => {
-        setOllamaServiceOnline(online);
-        if (online && llamaPort === 8080) {
-          setLlamaPort(11434);
-          localStorage.setItem('kwiz_llama_port', '11434');
-        }
-      });
-    };
-    checkStatus();
-    const interval = setInterval(checkStatus, 10000);
+    const check = () => checkMarkitdown().then(setMarkitdownAvailable);
+    check();
+    const interval = setInterval(check, 10000);
     return () => clearInterval(interval);
-  }, [llamaPort]);
+  }, []);
 
   useEffect(() => {
     const closeMenu = () => setContextMenu(null);
@@ -935,10 +679,13 @@ export default function App() {
     questionType: QuizSet['questionType'];
     count: number;
     customPrompt: string;
-    attachment: { name: string; path: string } | null;
+    attachments: Attachment[];
   }) => {
-    if (config.attachment && config.attachment.name.endsWith('.kwiz')) {
-      readKwizFile(config.attachment.path)
+    const primaryAttachment = config.attachments[0] || null;
+    const isKwiz = primaryAttachment?.name.toLowerCase().endsWith('.kwiz');
+
+    if (isKwiz && primaryAttachment) {
+      readKwizFile(primaryAttachment.path)
         .then((content) => {
           try {
             const importedQuiz = JSON.parse(content);
@@ -966,8 +713,10 @@ export default function App() {
     }
 
     const quizId = `quiz_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const newQuizTitle = config.attachment
-      ? config.attachment.name.replace(/\.[^/.]+$/, "")
+    const newQuizTitle = config.attachments.length > 0
+      ? config.attachments.length === 1
+        ? config.attachments[0].name.replace(/\.[^/.]+$/, "")
+        : `${config.attachments[0].name.replace(/\.[^/.]+$/, "")} (+${config.attachments.length - 1} files)`
       : config.customPrompt
       ? `${config.customPrompt.substring(0, 20)}...`
       : 'General Quiz';
@@ -978,8 +727,10 @@ export default function App() {
       createdAt: new Date().toISOString(),
       questionType: config.questionType,
       questions: [],
-      source: config.attachment ? 'attachment' : 'prompt',
-      fileName: config.attachment?.name,
+      source: config.attachments.length > 0 ? 'attachment' : 'prompt',
+      fileName: config.attachments.length > 0 
+        ? config.attachments.map(a => a.name).join(', ')
+        : undefined,
       status: 'generating',
     };
 
@@ -988,19 +739,82 @@ export default function App() {
     setSelectedQuizId(quizId);
     setShowNewQuizModal(false);
 
+    // Concatenate the pre-converted markdown contents from all attachments
+    let concatenatedMarkdown = '';
+    config.attachments.forEach(att => {
+      if (att.content) {
+        concatenatedMarkdown += `\n\n--- Source: ${att.name} ---\n\n${att.content}`;
+      }
+    });
+
     generateQuiz({
-      filePath: config.attachment?.path,
+      markdownContent: concatenatedMarkdown,
       prompt: config.customPrompt || undefined,
       questionType: config.questionType,
       count: config.count,
-      llamaPort,
+      apiKey,
     })
-      .then((rawJson) => {
+      .then((rawToon) => {
         try {
-          // Parse maytoon JSON
-          const parsed = parseMaytoon(rawJson, {
-            count: config.count,
-            type: config.questionType,
+          // Preprocess and repair TOON string to handle indentation drops and trailing spaces
+          let processedToon = rawToon.trim();
+          processedToon = processedToon.replace(/^```[a-zA-Z0-9-]*\n/, '').replace(/\n```$/, '');
+          
+          const lines = processedToon.split('\n')
+            .map(line => line.trimEnd())
+            .filter(line => line.trim().length > 0);
+
+          let inQsArray = false;
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (/^qs\[\d+\]:/.test(line.trim())) {
+              inQsArray = true;
+              continue;
+            }
+            if (inQsArray) {
+              if (line.startsWith('- k:')) {
+                lines[i] = '  ' + line;
+              } else if (/^(q|c|a|n)(:|\b|\[)/.test(line)) {
+                lines[i] = '    ' + line;
+              } else if (line.startsWith('  ') && /^(q|c|a|n)(:|\b|\[)/.test(line.slice(2))) {
+                lines[i] = '  ' + line;
+              }
+            }
+          }
+          processedToon = lines.join('\n');
+
+          // Handle LLM truncation: drop the incomplete last question and rewrite array count
+          const qsIndex = processedToon.search(/^qs\[\d+\]:/m);
+          if (qsIndex !== -1) {
+            const headerPart = processedToon.slice(0, qsIndex);
+            const qsPart = processedToon.slice(qsIndex);
+            
+            const items = qsPart.split(/^\s*-\s*k\s*:/gm);
+            let validItems: string[] = [];
+            for (let j = 1; j < items.length; j++) {
+              let itemStr = items[j];
+              if (j === items.length - 1) {
+                if (!/\s*a\s*:/.test(itemStr)) {
+                  continue;
+                }
+              }
+              validItems.push('  - k:' + itemStr.trimEnd());
+            }
+            // Enforce the requested count ceiling
+            if (validItems.length > config.count) {
+              validItems = validItems.slice(0, config.count);
+            }
+            processedToon = headerPart.trim() + '\n' + `qs[${validItems.length}]:\n` + validItems.join('\n');
+          }
+
+          // Decode TOON formatted response
+          const decoded = decodeToon(processedToon) as any;
+          const parsed = parseMaytoon(decoded, {
+            id: quizId,
+            createdAt: tempQuiz.createdAt,
+            questionType: config.questionType,
+            source: tempQuiz.source,
+            fileName: tempQuiz.fileName,
           });
 
           setQuizzes((prev) => {
@@ -1018,7 +832,7 @@ export default function App() {
             return next;
           });
         } catch (parseErr) {
-          console.error('Failed to parse Maytoon JSON:', rawJson, parseErr);
+          console.error('Failed to decode/parse TOON format:', rawToon, parseErr);
           setQuizzes((prev) => {
             const next = prev.map((q) =>
               q.id === quizId ? { ...q, status: 'error' as const } : q
@@ -1176,43 +990,37 @@ export default function App() {
               </div>
             </TuiContainer>
 
-            {/* ── LOCAL AI STATUS ────────────────────────────────────────── */}
+            {/* ── STATUS ──────────────────────────────────────────────── */}
             <TuiContainer
-              label="Local AI Status"
+              label="Status"
               disableHover={true}
               style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}
               contentStyle={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px' }}
             >
-              {llamaAvailable || ollamaServiceOnline ? (
-                <div className="flex flex-col gap-2 font-mono">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted">Status:</span>
-                    <span className="text-green-500 font-bold">ONLINE</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted">Port:</span>
-                    <span className="text-foreground font-bold">{llamaAvailable ? llamaPort : 11434}</span>
-                  </div>
-                  <button
-                    onClick={() => setShowAiSetupModal(true)}
-                    className="w-full border-[1.5px] border-border text-foreground py-2 px-3 text-xs font-bold hover:border-primary hover:bg-primary/5 cursor-pointer transition-all active:scale-98"
-                  >
-                    Ollama Setup
-                  </button>
+              <div className="flex flex-col gap-2 font-mono">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted">AI:</span>
+                  <span className="text-primary font-bold">MISTRAL AI</span>
                 </div>
-              ) : (
-                <div className="flex flex-col gap-2 font-mono">
-                  <div className="text-[11px] text-muted leading-relaxed">
-                    Offline. Start Ollama to generate quizzes.
-                  </div>
-                  <button
-                    onClick={() => setShowAiSetupModal(true)}
-                    className="w-full border-[1.5px] border-primary text-primary py-2 px-3 text-xs font-bold hover:bg-primary/20 cursor-pointer transition-all active:scale-98"
-                  >
-                    Setup Local AI
-                  </button>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted">Key:</span>
+                  <span className={apiKey ? 'text-green-500 font-bold' : 'text-destructive font-bold'}>
+                    {apiKey ? 'CONFIGURED' : 'MISSING'}
+                  </span>
                 </div>
-              )}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted">markitdown:</span>
+                  <span className={markitdownAvailable ? 'text-green-500 font-bold' : 'text-destructive font-bold'}>
+                    {markitdownAvailable === null ? '...' : markitdownAvailable ? 'FOUND' : 'NOT FOUND'}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowAiSetupModal(true)}
+                  className="w-full border-[1.5px] border-border text-foreground py-2 px-3 text-xs font-bold hover:border-primary hover:bg-primary/5 cursor-pointer transition-all active:scale-98"
+                >
+                  AI Setup
+                </button>
+              </div>
             </TuiContainer>
           </aside>
 
@@ -1391,6 +1199,7 @@ export default function App() {
                         <div className="flex flex-col items-center gap-4">
                           <LetterBoxInput
                             value={selectedAnswer}
+                            correctAnswer={currentQuestion.answer}
                             onChange={(val) => {
                               if (isLocked) return;
                               const next = [...userAnswers];
@@ -1413,7 +1222,7 @@ export default function App() {
                             >
                               {checkAnswer(currentQuestion, selectedAnswer)
                                 ? '✓ CORRECT'
-                                : `✗ ${currentQuestion.answer}`}
+                                : currentQuestion.answer}
                             </div>
                           )}
                         </div>
@@ -1512,21 +1321,14 @@ export default function App() {
       <NewQuizModal
         visible={showNewQuizModal}
         onClose={() => setShowNewQuizModal(false)}
-        llamaPort={llamaPort}
-        setLlamaPort={setLlamaPort}
-        llamaAvailable={llamaAvailable}
-        markitdownAvailable={markitdownAvailable}
         onCreate={handleCreateQuiz}
       />
 
       <AiSetupModal
         visible={showAiSetupModal}
         onClose={() => setShowAiSetupModal(false)}
-        llamaPort={llamaPort}
-        setLlamaPort={setLlamaPort}
-        llamaAvailable={llamaAvailable}
-        ollamaServiceOnline={ollamaServiceOnline}
-        markitdownAvailable={markitdownAvailable}
+        apiKey={apiKey}
+        setApiKey={setApiKey}
       />
 
       <RenameQuizModal

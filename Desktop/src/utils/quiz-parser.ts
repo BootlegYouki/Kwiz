@@ -1,8 +1,8 @@
 import { QuizSet, QuizQuestion, MaytoonQuiz } from '../types';
 
-export function parseMaytoon(jsonStr: string, options: { id: string; createdAt: string; questionType: QuizSet['questionType']; source?: string; fileName?: string }): QuizSet {
+export function parseMaytoon(data: string | MaytoonQuiz, options: { id: string; createdAt: string; questionType: QuizSet['questionType']; source?: string; fileName?: string }): QuizSet {
   try {
-    const parsed: MaytoonQuiz = JSON.parse(jsonStr);
+    const parsed: MaytoonQuiz = typeof data === 'string' ? JSON.parse(data) : data;
     
     const questions: QuizQuestion[] = (parsed.qs || []).map((q) => {
       if (q.k === 'mc') {
