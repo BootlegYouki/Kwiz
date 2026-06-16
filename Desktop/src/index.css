@@ -24,6 +24,9 @@
   *:focus, *:focus-visible {
     outline: none !important;
   }
+  * {
+    transition: none !important;
+  }
 }
 
 /* Hide scrollbar UI */

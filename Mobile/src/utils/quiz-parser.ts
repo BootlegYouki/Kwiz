@@ -1,8 +1,19 @@
 import { QuizSet, QuizQuestion, MaytoonQuiz } from '../types';
+import { decode as decodeToon } from '@toon-format/toon';
 
-export function parseMaytoon(jsonStr: string, options: { id: string; createdAt: string; questionType: QuizSet['questionType']; source?: string; fileName?: string }): QuizSet {
+export function parseMaytoon(data: string | MaytoonQuiz, options: { id: string; createdAt: string; questionType: QuizSet['questionType']; source?: string; fileName?: string }): QuizSet {
   try {
-    const parsed: MaytoonQuiz = JSON.parse(jsonStr);
+    let parsed: MaytoonQuiz;
+    if (typeof data === 'string') {
+      const trimmed = data.trim();
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        parsed = JSON.parse(trimmed);
+      } else {
+        parsed = decodeToon(trimmed) as MaytoonQuiz;
+      }
+    } else {
+      parsed = data;
+    }
     
     const questions: QuizQuestion[] = (parsed.qs || []).map((q) => {
       if (q.k === 'mc') {
@@ -33,7 +44,7 @@ export function parseMaytoon(jsonStr: string, options: { id: string; createdAt: 
       status: 'ready',
     };
   } catch (err) {
-    console.error('Failed to parse maytoon quiz JSON:', err);
+    console.error('Failed to parse maytoon quiz content:', err);
     return {
       id: options.id,
       title: 'Failed to generate quiz',

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, Pressable, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { TuiDrawer } from './tui-drawer';
 import { TuiText } from './tui-text';
@@ -9,6 +9,7 @@ import { QuizTypeToggle } from './quiz-type-toggle';
 import { ItemStepper } from './item-stepper';
 import { QuizSet } from '../types';
 import { useTheme } from '../theme/theme-provider';
+import { extractText } from 'expo-pdf-text-extract';
 
 interface NewQuizDrawerProps {
   visible: boolean;
@@ -17,7 +18,7 @@ interface NewQuizDrawerProps {
     questionType: QuizSet['questionType'];
     count: number;
     customPrompt: string;
-    attachment: { name: string; uri: string; size?: number } | null;
+    attachments: { name: string; uri: string; content?: string }[];
   }) => void;
 }
 
@@ -26,52 +27,85 @@ export const NewQuizDrawer: React.FC<NewQuizDrawerProps> = ({ visible, onClose, 
   const [questionType, setQuestionType] = useState<QuizSet['questionType']>('multiple_choice');
   const [count, setCount] = useState(10);
   const [customPrompt, setCustomPrompt] = useState('');
-  const [attachment, setAttachment] = useState<{ name: string; uri: string; size?: number } | null>(null);
+  const [attachments, setAttachments] = useState<{ name: string; uri: string; content?: string; isExtracting?: boolean }[]>([]);
 
-  const isKwizFile = !!(attachment && attachment.name.endsWith('.kwiz'));
+  const isKwizFile = attachments.some(a => a.name.toLowerCase().endsWith('.kwiz'));
+  const isExtracting = attachments.some(a => a.isExtracting);
 
   const handlePickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: [
-          'application/pdf',
-          'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-          'application/vnd.ms-powerpoint',
-          'application/json',
-          '*/*'
-        ],
+        type: ['application/pdf', '*/*'],
         copyToCacheDirectory: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const file = result.assets[0];
-        setAttachment({
+        const lowerName = file.name.toLowerCase();
+        if (!lowerName.endsWith('.pdf') && !lowerName.endsWith('.kwiz')) {
+          Alert.alert('Invalid File', 'Please select only PDF or .kwiz files.');
+          return;
+        }
+
+        // If it's a .kwiz file, it must be the only attachment
+        if (lowerName.endsWith('.kwiz')) {
+          setAttachments([{ name: file.name, uri: file.uri }]);
+          return;
+        }
+
+        // If we already have a .kwiz file, clear it when adding a PDF
+        const hasKwiz = attachments.some(a => a.name.toLowerCase().endsWith('.kwiz'));
+
+        const newAttachment = {
           name: file.name,
           uri: file.uri,
-          size: file.size,
-        });
+          isExtracting: true,
+        };
+
+        setAttachments(prev => [...(hasKwiz ? [] : prev), newAttachment]);
+
+        // Run extraction in background immediately
+        extractText(file.uri)
+          .then(extractedText => {
+            setAttachments(prev =>
+              prev.map(a =>
+                a.uri === file.uri
+                  ? { ...a, content: extractedText, isExtracting: false }
+                  : a
+              )
+            );
+          })
+          .catch(err => {
+            console.error('PDF text extraction error:', err);
+            Alert.alert('Extraction Failed', `Could not extract text from "${file.name}"`);
+            setAttachments(prev => prev.filter(a => a.uri !== file.uri));
+          });
       }
     } catch (err) {
       console.error('Failed to pick document:', err);
     }
   };
 
-  const handleClearAttachment = () => {
-    setAttachment(null);
+  const handleClearAttachment = (uri: string) => {
+    setAttachments(prev => prev.filter(a => a.uri !== uri));
   };
 
   const handleCreate = () => {
+    if (isExtracting) {
+      Alert.alert('Please Wait', 'PDF text extraction is still in progress.');
+      return;
+    }
     onCreate({
       questionType,
       count,
       customPrompt,
-      attachment,
+      attachments,
     });
     // Reset state
     setQuestionType('multiple_choice');
     setCount(10);
     setCustomPrompt('');
-    setAttachment(null);
+    setAttachments([]);
     onClose();
   };
 
@@ -79,29 +113,31 @@ export const NewQuizDrawer: React.FC<NewQuizDrawerProps> = ({ visible, onClose, 
     <TuiDrawer visible={visible} onClose={onClose} title="New Quiz">
       <View style={styles.formContent}>
           
-          {/* 1. Attachment */}
+          {/* 1. Attachments list */}
           <View style={styles.formSection}>
-            {attachment ? (
-              <View style={[styles.attachmentContainer, { borderColor: colors.primary }]}>
+            {attachments.map((att, idx) => (
+              <View key={idx} style={[styles.attachmentContainer, { borderColor: colors.primary, marginBottom: 8 }]}>
                 <View style={{ flex: 1, marginRight: 8 }}>
                   <TuiText weight="bold" size="sm" numberOfLines={1}>
-                    {attachment.name}
+                    {att.name}
                   </TuiText>
-                  {attachment.name.endsWith('.pptx') && (
+                  {att.isExtracting && (
                     <TuiText size="xs" style={{ color: colors.primary }} variant="accent">
-                      * PPTX (will auto-convert to PDF)
+                      * Extracting text in background...
                     </TuiText>
                   )}
                 </View>
-                <Pressable onPress={handleClearAttachment} style={styles.clearBtn}>
+                <Pressable onPress={() => handleClearAttachment(att.uri)} style={styles.clearBtn}>
                   <TuiText weight="bold" style={{ color: colors.destructive }}>
                     Remove
                   </TuiText>
                 </Pressable>
               </View>
-            ) : (
+            ))}
+
+            {!isKwizFile && (
               <TuiButton onPress={handlePickDocument} variant="outline">
-                Attach PDF, PPTX or .kwiz
+                Attach PDF or .kwiz
               </TuiButton>
             )}
           </View>
@@ -140,7 +176,7 @@ export const NewQuizDrawer: React.FC<NewQuizDrawerProps> = ({ visible, onClose, 
               </TuiButton>
             </View>
             <View style={{ flex: 1, marginLeft: 8 }}>
-              <TuiButton onPress={handleCreate} variant="accent">
+              <TuiButton onPress={handleCreate} variant="accent" disabled={isExtracting}>
                 Create
               </TuiButton>
             </View>

@@ -34,6 +34,7 @@ import {
   readKwizFile,
   writeKwizFile,
 } from './utils/llm';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { parseMaytoon } from './utils/quiz-parser';
 import { decode as decodeToon } from '@toon-format/toon';
 
@@ -54,7 +55,23 @@ type AppView = 'home' | 'playing' | 'results';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function checkAnswer(question: QuizQuestion, answer: string): boolean {
-  return !!answer && answer.toLowerCase().trim() === question.answer.toLowerCase().trim();
+  if (!answer) return false;
+  const normalizedAnswer = answer.toLowerCase().trim();
+  const correctAnswer = question.answer.toLowerCase().trim();
+
+  if (normalizedAnswer === correctAnswer) return true;
+
+  if (question.type === 'multiple_choice' && question.choices) {
+    const letterMap = ['a', 'b', 'c', 'd'];
+    const ansIdx = letterMap.indexOf(correctAnswer);
+    if (ansIdx !== -1 && question.choices[ansIdx]) {
+      const correctChoiceText = question.choices[ansIdx].toLowerCase().trim();
+      if (normalizedAnswer === correctChoiceText) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -90,8 +107,8 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz, isSelected, onClick, onContex
       onContextMenu={onContextMenu}
       disabled={isGenerating}
       className={`w-full border-[1.5px] px-4 py-3 text-left flex flex-col gap-1 cursor-pointer select-none transition-all ${isSelected
-          ? 'border-primary bg-primary/10 text-primary'
-          : 'border-border text-foreground hover:border-primary hover:bg-primary/5'
+        ? 'border-primary bg-primary/10 text-primary'
+        : 'border-border text-foreground hover:border-primary hover:bg-primary/5'
         } ${isGenerating ? 'opacity-60 cursor-not-allowed animate-pulse' : ''} ${isError ? 'border-destructive bg-destructive/10 text-destructive/90 cursor-default' : ''
         }`}
     >
@@ -410,6 +427,13 @@ const AiSetupModal: React.FC<AiSetupModalProps> = ({ visible, onClose, apiKey, s
                 }}
                 className="w-full border-[1.5px] border-border bg-card px-3 py-2 text-xs focus:outline-none focus:border-primary text-foreground font-mono"
               />
+              <button
+                type="button"
+                onClick={() => openUrl('https://console.mistral.ai/api-keys/')}
+                className="text-[10px] text-primary hover:underline cursor-pointer text-left font-mono mt-1"
+              >
+                → Get your API key at console.mistral.ai
+              </button>
             </div>
           </div>
 
@@ -736,6 +760,7 @@ export default function App() {
     saveAndSet(updatedQuizzes);
     setSelectedQuizId(quizId);
     setShowNewQuizModal(false);
+    setView('home');
 
     // Concatenate the pre-converted markdown contents from all attachments
     let concatenatedMarkdown = '';
@@ -902,7 +927,7 @@ export default function App() {
       <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden min-h-0">
         {/* ── TOP NAV ─────────────────────────────────────────────────── */}
         <nav className="shrink-0 select-none">
-          <TuiContainer label="Nav" style={{ width: '100%'}}>
+          <TuiContainer label="Nav" style={{ width: '100%' }}>
             <div className="flex items-center gap-6 py-1 select-none">
               {/* Logo */}
               <div className="flex items-center gap-3">
@@ -950,8 +975,8 @@ export default function App() {
                   setSelectedQuizId(null);
                 }}
                 className={`w-full border-[1.5px] py-3 px-4 flex items-center justify-center gap-2 cursor-pointer text-sm font-bold active:scale-95 shrink-0 transition-all ${view === 'home'
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border text-foreground hover:border-primary hover:bg-primary/5'
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border text-foreground hover:border-primary hover:bg-primary/5'
                   }`}
               >
                 <span>Home</span>
@@ -1063,8 +1088,8 @@ export default function App() {
                             }}
                             disabled={isGenerating}
                             className={`border-[1.5px] p-4 flex flex-col justify-between text-left cursor-pointer select-none transition-all ${isGenerating ? 'border-border opacity-60 cursor-not-allowed animate-pulse' :
-                                isError ? 'border-destructive bg-destructive/10 text-destructive/90 hover:bg-destructive/20' :
-                                  'border-border hover:border-primary hover:bg-primary/5'
+                              isError ? 'border-destructive bg-destructive/10 text-destructive/90 hover:bg-destructive/20' :
+                                'border-border hover:border-primary hover:bg-primary/5'
                               }`}
                           >
                             <div className="flex items-start justify-between w-full gap-2">
@@ -1210,8 +1235,8 @@ export default function App() {
                           {isLocked && (
                             <div
                               className={`w-full border-[1.5px] px-5 py-4 text-center font-bold text-base ${checkAnswer(currentQuestion, selectedAnswer)
-                                  ? 'border-green-500 bg-green-500/10 text-green-500'
-                                  : 'border-destructive bg-destructive/10 text-destructive'
+                                ? 'border-green-500 bg-green-500/10 text-green-500'
+                                : 'border-destructive bg-destructive/10 text-destructive'
                                 }`}
                             >
                               {checkAnswer(currentQuestion, selectedAnswer)
@@ -1287,7 +1312,18 @@ export default function App() {
                           </p>
                           {!correct && (
                             <p className="text-sm font-mono text-muted">
-                              Expected: <span className="text-green-500">{q.answer}</span>
+                              Expected:{' '}
+                              <span className="text-green-500">
+                                {(() => {
+                                  if (q.type === 'multiple_choice' && q.choices) {
+                                    const ansIdx = ['a', 'b', 'c', 'd'].indexOf(q.answer.toLowerCase().trim());
+                                    if (ansIdx !== -1 && q.choices[ansIdx]) {
+                                      return `${q.answer.toUpperCase()}: ${q.choices[ansIdx]}`;
+                                    }
+                                  }
+                                  return q.answer;
+                                })()}
+                              </span>
                             </p>
                           )}
                         </TuiContainer>

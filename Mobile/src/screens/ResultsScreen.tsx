@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { TuiContainer } from '../components/tui-container';
 import { TuiText } from '../components/tui-text';
 import { TuiButton } from '../components/tui-button';
-import { QuizSet } from '../types';
+import { QuizSet, QuizQuestion } from '../types';
 import { useTheme } from '../theme/theme-provider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,12 +13,14 @@ interface ResultsScreenProps {
   answers: string[];
   onBackToMenu: () => void;
   onRetake: () => void;
+  finalQueue?: QuizQuestion[];
 }
 
-export const ResultsScreen: React.FC<ResultsScreenProps> = ({ quiz, score, answers, onBackToMenu, onRetake }) => {
+export const ResultsScreen: React.FC<ResultsScreenProps> = ({ quiz, score, answers, onBackToMenu, onRetake, finalQueue }) => {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const totalQuestions = quiz.questions.length;
+  const questionsToRender = finalQueue || quiz.questions;
+  const totalQuestions = questionsToRender.length;
   const percentage = Math.round((score / totalQuestions) * 100);
 
   const getReviewComment = () => {
@@ -29,9 +31,24 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ quiz, score, answe
   };
 
   const isCorrect = (index: number) => {
-    const question = quiz.questions[index];
+    const question = questionsToRender[index];
     const answer = answers[index] || '';
-    return answer.toLowerCase().trim() === question.answer.toLowerCase().trim();
+    const normalizedAnswer = answer.toLowerCase().trim();
+    const correctAnswer = question.answer.toLowerCase().trim();
+
+    if (normalizedAnswer === correctAnswer) return true;
+
+    if (question.type === 'multiple_choice' && question.choices) {
+      const letterMap = ['a', 'b', 'c', 'd'];
+      const ansIdx = letterMap.indexOf(correctAnswer);
+      if (ansIdx !== -1 && question.choices[ansIdx]) {
+        const correctChoiceText = question.choices[ansIdx].toLowerCase().trim();
+        if (normalizedAnswer === correctChoiceText) {
+          return true;
+        }
+      }
+    }
+    return false;
   };
 
   return (
@@ -63,7 +80,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ quiz, score, answe
 
 
         <View style={styles.reviewList}>
-          {quiz.questions.map((question, idx) => {
+          {questionsToRender.map((question, idx) => {
             const correct = isCorrect(idx);
             const userAns = answers[idx] || 'No Answer';
             
@@ -87,7 +104,18 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ quiz, score, answe
 
                 {!correct && (
                   <TuiText size="sm" style={{ color: colors.mutedForeground, marginTop: 4 }}>
-                    EXPECTED: <TuiText size="sm" weight="bold" style={{ color: '#10B981' }}>{question.answer}</TuiText>
+                    EXPECTED:{' '}
+                    <TuiText size="sm" weight="bold" style={{ color: '#10B981' }}>
+                      {(() => {
+                        if (question.type === 'multiple_choice' && question.choices) {
+                          const ansIdx = ['a', 'b', 'c', 'd'].indexOf(question.answer.toLowerCase().trim());
+                          if (ansIdx !== -1 && question.choices[ansIdx]) {
+                            return `${question.answer.toUpperCase()}: ${question.choices[ansIdx]}`;
+                          }
+                        }
+                        return question.answer;
+                      })()}
+                    </TuiText>
                   </TuiText>
                 )}
               </TuiContainer>

@@ -35,6 +35,10 @@ import { QuizCard } from './src/components/quiz-card';
 import { ContextMenuOverlay } from './src/components/context-menu-overlay';
 import { QuizSet, QuizQuestion } from './src/types';
 import { getQuizzes, saveQuizzes, saveQuiz, deleteQuiz, renameQuiz } from './src/utils/quiz-storage';
+import * as SecureStore from 'expo-secure-store';
+import { parseMaytoon } from './src/utils/quiz-parser';
+import { decode as decodeToon } from '@toon-format/toon';
+import { extractText } from 'expo-pdf-text-extract';
 
 function MainApp() {
   const { colors, isDark, setThemeMode } = useTheme();
@@ -49,6 +53,7 @@ function MainApp() {
   const [activeQuiz, setActiveQuiz] = useState<QuizSet | null>(null);
   const [gameScore, setGameScore] = useState(0);
   const [gameAnswers, setGameAnswers] = useState<string[]>([]);
+  const [gameQueue, setGameQueue] = useState<QuizQuestion[]>([]);
 
   // UI state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -140,17 +145,18 @@ function MainApp() {
     }
   };
 
-  // Mock LLM generation logic
+  // Real Mistral LLM generation logic
   const handleCreateQuiz = async (config: {
     questionType: QuizSet['questionType'];
     count: number;
     customPrompt: string;
-    attachment: { name: string; uri: string } | null;
+    attachments: { name: string; uri: string; content?: string }[];
   }) => {
+    const primaryAttachment = config.attachments[0] || null;
     // Check if the attached file is a .kwiz file
-    if (config.attachment && config.attachment.name.endsWith('.kwiz')) {
+    if (primaryAttachment && primaryAttachment.name.endsWith('.kwiz')) {
       try {
-        const content = await FileSystem.readAsStringAsync(config.attachment.uri);
+        const content = await FileSystem.readAsStringAsync(primaryAttachment.uri);
         const importedQuiz = JSON.parse(content);
         if (importedQuiz && importedQuiz.title && Array.isArray(importedQuiz.questions)) {
           importedQuiz.id = Math.random().toString(36).substring(7);
@@ -169,9 +175,17 @@ function MainApp() {
         return;
       }
     }
+
+    // Load Mistral API key
+    const apiKey = await SecureStore.getItemAsync('kwiz_mistral_api_key');
+    if (!apiKey) {
+      Alert.alert('API Key Required', 'Please set your Mistral API key in Settings first.');
+      return;
+    }
+
     const quizId = Math.random().toString(36).substring(7);
-    const newQuizTitle = config.attachment
-      ? config.attachment.name.replace(/\.[^/.]+$/, "")
+    const newQuizTitle = config.attachments.length > 0
+      ? config.attachments[0].name.replace(/\.[^/.]+$/, "")
       : config.customPrompt
       ? `${config.customPrompt.substring(0, 20)}...`
       : 'General Quiz';
@@ -182,8 +196,10 @@ function MainApp() {
       createdAt: new Date().toISOString(),
       questionType: config.questionType,
       questions: [],
-      source: config.attachment ? 'attachment' : 'prompt',
-      fileName: config.attachment?.name,
+      source: config.attachments.length > 0 ? 'attachment' : 'prompt',
+      fileName: config.attachments.length > 0
+        ? config.attachments.map(a => a.name).join(', ')
+        : undefined,
       status: 'generating',
     };
 
@@ -192,45 +208,153 @@ function MainApp() {
     setQuizzes(updatedQuizzes);
     await saveQuizzes(updatedQuizzes);
 
-    // Simulate PC background generation (Tauri backend emulation for Phase 1)
-    setTimeout(async () => {
-      // Mock generated questions based on type
-      const generatedQuestions: QuizQuestion[] = [];
-      const countToGenerate = config.count;
+    // Run generation asynchronously
+    (async () => {
+      try {
+        let sourceContent = '';
 
-      for (let i = 1; i <= countToGenerate; i++) {
-        const isIdentification =
-          config.questionType === 'identification' ||
-          (config.questionType === 'hybrid' && i % 2 === 0);
-
-        if (isIdentification) {
-          generatedQuestions.push({
-            type: 'identification',
-            question: `Identification question ${i} derived from ${config.attachment ? config.attachment.name : 'your notes'}. (Answer is "kwiz")`,
-            answer: 'kwiz',
-            charCount: 4,
+        if (config.attachments.length > 0) {
+          // Concatenate pre-extracted text from all attachments
+          config.attachments.forEach(att => {
+            if (att.content) {
+              sourceContent += `\n\n--- Source: ${att.name} ---\n\n${att.content}`;
+            }
           });
         } else {
-          generatedQuestions.push({
-            type: 'multiple_choice',
-            question: `Multiple choice question ${i} generated from content.`,
-            choices: [`Choice A for item ${i}`, `Choice B for item ${i}`, `Choice C for item ${i}`, `Choice D for item ${i}`],
-            answer: `Choice B for item ${i}`,
-          });
+          sourceContent = config.customPrompt;
         }
+
+        if (!sourceContent.trim()) {
+          throw new Error('No prompt or PDF content found.');
+        }
+
+        const instructions = config.questionType === 'multiple_choice'
+          ? `Generate exactly ${config.count} questions of type mc (multiple choice). Each must have 'k': 'mc', 'q': '<question text>', 'c' (an array of 4 choices), and 'a': '<correct option letter: A, B, C, or D>'.`
+          : config.questionType === 'identification'
+          ? `Generate exactly ${config.count} questions of type id (identification). Each must have 'k': 'id', 'q': '<question text>', 'a': '<text answer>', and 'n': <integer character count of the answer>. Crucial: The text answer ('a') must be short, containing at most 3 words.`
+          : `Generate exactly ${config.count} questions alternating between mc (multiple choice) and id (identification) types. Crucial: All identification answers ('a') must be short, containing at most 3 words.`;
+
+        const systemPrompt = `You are a quiz generator. Output ONLY valid TOON (Token-Oriented Object Notation) with no markdown fences, no formatting, no prefix, no suffix. \
+You MUST generate ALL ${config.count} questions — do not stop early, do not truncate, do not summarize. Stopping before ${config.count} questions is a failure. \
+Crucial: Every array item under \`qs[N]:\` must be indented with exactly 2 spaces, and its properties (k, q, c, a, n) must be indented with exactly 4 spaces. \
+Crucial: The choices in \`c[4]\` must ALWAYS be wrapped in double quotes (e.g., c[4]: "choice A","choice B","choice C","choice D") to handle commas safely.
+
+Format Example:
+t: <quiz title>
+qs[${config.count}]:
+  - k: mc
+    q: <question text>
+    c[4]: "option A","option B","option C","option D"
+    a: <correct option letter: A, B, C, or D>
+  - k: id
+    q: <question text>
+    a: <text answer>
+    n: <integer character count of answer>
+
+${instructions} from the following content.
+${config.customPrompt ? `Custom guidelines: ${config.customPrompt}` : ''}`;
+
+        // 3. Request Chat Completion
+        const completionResp = await fetch('https://api.mistral.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'mistral-large-latest',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: `Content:\n${sourceContent}` },
+            ],
+            temperature: 0.3,
+            max_tokens: Math.max(config.count * 300, 4096),
+          }),
+        });
+
+        if (!completionResp.ok) {
+          const errBody = await completionResp.text();
+          throw new Error(`Mistral completion failed: ${completionResp.status} ${errBody}`);
+        }
+
+        const completionData = await completionResp.json();
+        const rawToon = completionData.choices[0].message.content || '';
+
+        // Preprocess and repair TOON string
+        let processedToon = rawToon.trim();
+        processedToon = processedToon.replace(/^```[a-zA-Z0-9-]*\n/, '').replace(/\n```$/, '');
+
+        const lines = processedToon.split('\n')
+          .map((line: string) => line.trimEnd())
+          .filter((line: string) => line.trim().length > 0);
+
+        let inQsArray = false;
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (/^qs\[\d+\]:/.test(line.trim())) {
+            inQsArray = true;
+            continue;
+          }
+          if (inQsArray) {
+            if (line.startsWith('- k:')) {
+              lines[i] = '  ' + line;
+            } else if (/^(q|c|a|n)(:|\b|\[)/.test(line)) {
+              lines[i] = '    ' + line;
+            } else if (line.startsWith('  ') && /^(q|c|a|n)(:|\b|\[)/.test(line.slice(2))) {
+              lines[i] = '  ' + line;
+            }
+          }
+        }
+        processedToon = lines.join('\n');
+
+        const qsIndex = processedToon.search(/^qs\[\d+\]:/m);
+        if (qsIndex !== -1) {
+          const headerPart = processedToon.slice(0, qsIndex);
+          const qsPart = processedToon.slice(qsIndex);
+
+          const items = qsPart.split(/^\s*-\s*k\s*:/gm);
+          let validItems: string[] = [];
+          for (let j = 1; j < items.length; j++) {
+            let itemStr = items[j];
+            if (j === items.length - 1) {
+              if (!/\s*a\s*:/.test(itemStr)) {
+                continue;
+              }
+            }
+            validItems.push('  - k:' + itemStr.trimEnd());
+          }
+          if (validItems.length > config.count) {
+            validItems = validItems.slice(0, config.count);
+          }
+          processedToon = headerPart.trim() + '\n' + `qs[${validItems.length}]:\n` + validItems.join('\n');
+        }
+
+        const decoded = decodeToon(processedToon) as any;
+        const parsed = parseMaytoon(decoded, {
+          id: quizId,
+          createdAt: tempQuiz.createdAt,
+          questionType: config.questionType,
+          source: tempQuiz.source,
+          fileName: tempQuiz.fileName,
+        });
+
+        // Save and update state
+        await saveQuiz(parsed);
+        const reloaded = await getQuizzes();
+        setQuizzes(reloaded);
+      } catch (err: any) {
+        console.error('Quiz generation error:', err);
+        const errorQuiz: QuizSet = {
+          ...tempQuiz,
+          status: 'error',
+          title: 'Generation Failed',
+        };
+        await saveQuiz(errorQuiz);
+        const reloaded = await getQuizzes();
+        setQuizzes(reloaded);
+        Alert.alert('Generation Failed', err.message || 'An unknown error occurred during generation.');
       }
-
-      const finalizedQuiz: QuizSet = {
-        ...tempQuiz,
-        status: 'ready',
-        questions: generatedQuestions,
-      };
-
-      // Update storage and state
-      await saveQuiz(finalizedQuiz);
-      const reloaded = await getQuizzes();
-      setQuizzes(reloaded);
-    }, 3000);
+    })();
   };
 
   const handleSelectQuiz = (quiz: QuizSet) => {
@@ -238,9 +362,10 @@ function MainApp() {
     setGamePlayState('playing');
   };
 
-  const handleFinishQuiz = (score: number, answers: string[]) => {
+  const handleFinishQuiz = (score: number, answers: string[], finalQueue?: QuizQuestion[]) => {
     setGameScore(score);
     setGameAnswers(answers);
+    setGameQueue(finalQueue || []);
     setGamePlayState('results');
   };
 
@@ -322,6 +447,7 @@ function MainApp() {
           answers={gameAnswers}
           onBackToMenu={handleBackToMenu}
           onRetake={() => setGamePlayState('playing')}
+          finalQueue={gameQueue.length > 0 ? gameQueue : undefined}
         />
       );
     }

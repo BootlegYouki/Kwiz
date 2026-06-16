@@ -10,28 +10,33 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface QuizPlayerScreenProps {
   quiz: QuizSet;
-  onFinish: (score: number, answers: string[]) => void;
+  onFinish: (score: number, answers: string[], finalQueue?: QuizQuestion[]) => void;
   onExit: () => void;
 }
 
 export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFinish, onExit }) => {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const [questionQueue, setQuestionQueue] = useState<QuizQuestion[]>(quiz.questions);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const totalQuestions = quiz.questions.length;
+  const totalQuestions = questionQueue.length;
 
-  const [userAnswers, setUserAnswers] = useState<string[]>(new Array(totalQuestions).fill(''));
-  const [lockedStates, setLockedStates] = useState<boolean[]>(new Array(totalQuestions).fill(false));
+  const [userAnswers, setUserAnswers] = useState<string[]>(new Array(quiz.questions.length).fill(''));
+  const [lockedStates, setLockedStates] = useState<boolean[]>(new Array(quiz.questions.length).fill(false));
 
-  const currentQuestion: QuizQuestion = quiz.questions[currentIndex];
+  const currentQuestion: QuizQuestion = questionQueue[currentIndex];
   const selectedAnswer = userAnswers[currentIndex] || '';
   const isLocked = lockedStates[currentIndex] || false;
 
   const handleChoicePress = (choice: string) => {
     if (isLocked) return;
-    const nextAnswers = [...userAnswers];
-    nextAnswers[currentIndex] = choice;
-    setUserAnswers(nextAnswers);
+    if (selectedAnswer === choice) {
+      handleLockIn();
+    } else {
+      const nextAnswers = [...userAnswers];
+      nextAnswers[currentIndex] = choice;
+      setUserAnswers(nextAnswers);
+    }
   };
 
   const handleLockIn = () => {
@@ -42,27 +47,93 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
   };
 
   const checkAnswer = (question: QuizQuestion, answerStr: string): boolean => {
-    return !!answerStr && answerStr.toLowerCase().trim() === question.answer.toLowerCase().trim();
+    if (!answerStr) return false;
+    const normalizedAnswer = answerStr.toLowerCase().trim();
+    const correctAnswer = question.answer.toLowerCase().trim();
+
+    if (normalizedAnswer === correctAnswer) return true;
+
+    if (question.type === 'multiple_choice' && question.choices) {
+      const letterMap = ['a', 'b', 'c', 'd'];
+      const ansIdx = letterMap.indexOf(correctAnswer);
+      if (ansIdx !== -1 && question.choices[ansIdx]) {
+        const correctChoiceText = question.choices[ansIdx].toLowerCase().trim();
+        if (normalizedAnswer === correctChoiceText) {
+          return true;
+        }
+      }
+    }
+    return false;
   };
 
   const handlePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
+    let targetIndex = currentIndex - 1;
+    while (targetIndex >= 0) {
+      const q = questionQueue[targetIndex];
+      let alreadyCorrect = false;
+      for (let i = 0; i < questionQueue.length; i++) {
+        if (questionQueue[i] === q && lockedStates[i]) {
+          if (checkAnswer(questionQueue[i], userAnswers[i])) {
+            alreadyCorrect = true;
+            break;
+          }
+        }
+      }
+      if (!alreadyCorrect) {
+        break;
+      }
+      targetIndex--;
+    }
+
+    if (targetIndex >= 0) {
+      setCurrentIndex(targetIndex);
     }
   };
 
   const handleNext = () => {
-    if (currentIndex + 1 < totalQuestions) {
-      setCurrentIndex(currentIndex + 1);
+    const isCorrect = checkAnswer(currentQuestion, selectedAnswer);
+    let nextQueue = questionQueue;
+    let nextAnswers = userAnswers;
+    let nextLocked = lockedStates;
+
+    if (!isCorrect) {
+      nextQueue = [...questionQueue, currentQuestion];
+      nextAnswers = [...userAnswers, ''];
+      nextLocked = [...lockedStates, false];
+      setQuestionQueue(nextQueue);
+      setUserAnswers(nextAnswers);
+      setLockedStates(nextLocked);
+    }
+
+    let targetIndex = currentIndex + 1;
+    while (targetIndex < nextQueue.length) {
+      const q = nextQueue[targetIndex];
+      let alreadyCorrect = false;
+      for (let i = 0; i < nextQueue.length; i++) {
+        if (nextQueue[i] === q && nextLocked[i]) {
+          if (checkAnswer(nextQueue[i], nextAnswers[i])) {
+            alreadyCorrect = true;
+            break;
+          }
+        }
+      }
+      if (!alreadyCorrect) {
+        break;
+      }
+      targetIndex++;
+    }
+
+    if (targetIndex < nextQueue.length) {
+      setCurrentIndex(targetIndex);
     } else {
-      // Calculate final score dynamically
+      // Calculate final score dynamically (based on first attempts)
       let finalScore = 0;
       quiz.questions.forEach((q, idx) => {
-        if (checkAnswer(q, userAnswers[idx])) {
+        if (checkAnswer(q, nextAnswers[idx])) {
           finalScore += 1;
         }
       });
-      onFinish(finalScore, userAnswers);
+      onFinish(finalScore, nextAnswers, nextQueue);
     }
   };
 
@@ -77,17 +148,30 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
     );
   };
 
+  const currentOriginalIndex = quiz.questions.indexOf(currentQuestion);
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Segmented Retro Progress Bar */}
-        <TuiContainer label={`${currentIndex + 1} / ${totalQuestions}`}>
+        <TuiContainer label={`Question ${currentOriginalIndex !== -1 ? currentOriginalIndex + 1 : 1} / ${quiz.questions.length}`}>
           <View style={[styles.progressOuterRow, { height: 30 }]}>
-            {quiz.questions.map((q, idx) => {
-              const isAnswered = lockedStates[idx];
-              const answer = userAnswers[idx] || '';
-              const isCorrect = checkAnswer(q, answer);
-              const isActive = idx === currentIndex;
+            {quiz.questions.map((q, origIdx) => {
+              // Find the latest attempt for this question in the queue
+              let latestAttemptIdx = -1;
+              for (let i = questionQueue.length - 1; i >= 0; i--) {
+                if (questionQueue[i] === q && lockedStates[i]) {
+                  latestAttemptIdx = i;
+                  break;
+                }
+              }
+
+              const isAnswered = latestAttemptIdx !== -1;
+              const answer = isAnswered ? userAnswers[latestAttemptIdx] : '';
+              const isCorrect = isAnswered && checkAnswer(q, answer);
+              
+              // Is this original question the one currently active?
+              const isActive = currentQuestion === q;
 
               let bgColor = 'transparent';
               let borderColor = isDark ? colors.mutedForeground : colors.border; // Neutral border for untouched questions
@@ -97,15 +181,19 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
                 borderColor = isCorrect ? '#10B981' : colors.destructive;
               }
 
+              if (isActive) {
+                borderColor = colors.primary;
+              }
+
               return (
                 <View
-                  key={idx}
+                  key={origIdx}
                   style={[
                     styles.progressSegment,
                     {
                       backgroundColor: bgColor,
                       borderColor: borderColor,
-                      borderWidth: 1.5,
+                      borderWidth: isActive ? 2.5 : 1.5,
                     },
                   ]}
                 />
@@ -115,8 +203,8 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
         </TuiContainer>
 
         {/* Question Panel */}
-        <TuiContainer label={`Question ${currentIndex + 1}`}>
-          <TuiText size="lg" weight="bold" style={styles.questionText}>
+        <TuiContainer label={`Question ${currentOriginalIndex !== -1 ? currentOriginalIndex + 1 : 1}`}>
+          <TuiText size="md" weight="bold" style={styles.questionText}>
             {currentQuestion.question}
           </TuiText>
         </TuiContainer>
@@ -128,7 +216,7 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
               {currentQuestion.choices.map((choice, idx) => {
                 const isSelected = selectedAnswer === choice;
                 const isCorrectChoice = checkAnswer(currentQuestion, choice);
-                
+
                 let optionBorder = colors.primary + '40';
                 let optionBg = 'transparent';
 
@@ -168,7 +256,7 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
                         },
                       ]}
                     />
-                    <TuiText style={{ flex: 1, marginLeft: 12 }}>
+                    <TuiText size="sm" style={{ flex: 1, marginLeft: 12 }}>
                       {choice}
                     </TuiText>
                   </Pressable>
@@ -179,14 +267,19 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
             <View style={styles.identificationContainer}>
               <LetterBoxInput
                 value={selectedAnswer}
-                onChange={isLocked ? () => {} : (val) => {
+                onChange={isLocked ? () => { } : (val) => {
                   const nextAnswers = [...userAnswers];
                   nextAnswers[currentIndex] = val;
                   setUserAnswers(nextAnswers);
+                  if (currentQuestion.charCount && val.length === currentQuestion.charCount) {
+                    const nextLocked = [...lockedStates];
+                    nextLocked[currentIndex] = true;
+                    setLockedStates(nextLocked);
+                  }
                 }}
                 charCount={currentQuestion.charCount}
               />
-              
+
               {isLocked && (
                 <View style={[
                   styles.feedbackBanner,
@@ -204,44 +297,31 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
           )}
         </View>
 
-        {/* Footer Navigation Buttons */}
-        <View style={styles.footerRow}>
-          <View style={styles.navButtonsRow}>
-            <TuiButton
-              onPress={handlePrev}
-              variant="outline"
-              disabled={currentIndex === 0}
-              style={styles.halfBtn}
-              fullWidth={false}
-            >
-              Previous
-            </TuiButton>
-
-            {!isLocked && selectedAnswer.trim() ? (
-              <TuiButton
-                onPress={handleLockIn}
-                variant="accent"
-                disabled={!selectedAnswer.trim()}
-                style={styles.halfBtn}
-                fullWidth={false}
-              >
-                Lock In
-              </TuiButton>
-            ) : (
-              <TuiButton
-                onPress={handleNext}
-                variant={currentIndex + 1 === totalQuestions ? 'accent' : 'outline'}
-                style={styles.halfBtn}
-                fullWidth={false}
-              >
-                {currentIndex + 1 === totalQuestions ? 'Finish' : 'Next'}
-              </TuiButton>
-            )}
-          </View>
-        </View>
       </ScrollView>
 
       <View style={[styles.bottomContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View style={[styles.navButtonsRow, { marginBottom: 8 }]}>
+          <TuiButton
+            onPress={handlePrev}
+            variant="outline"
+            disabled={currentIndex === 0}
+            style={styles.halfBtn}
+            fullWidth={false}
+          >
+            Previous
+          </TuiButton>
+
+          <TuiButton
+            onPress={handleNext}
+            variant={currentIndex + 1 === totalQuestions ? 'accent' : 'outline'}
+            disabled={!isLocked}
+            style={styles.halfBtn}
+            fullWidth={false}
+          >
+            {currentIndex + 1 === totalQuestions ? 'Finish' : 'Next'}
+          </TuiButton>
+        </View>
+
         <TuiButton
           onPress={handleExitPress}
           variant="destructive"
@@ -290,7 +370,6 @@ const styles = StyleSheet.create({
   radioIndicator: {
     width: 16,
     height: 16,
-    borderRadius: 8,
     borderWidth: 1.5,
   },
   identificationContainer: {

@@ -1,8 +1,19 @@
 import { QuizSet, QuizQuestion, MaytoonQuiz } from '../types';
+import { decode as decodeToon } from '@toon-format/toon';
 
 export function parseMaytoon(data: string | MaytoonQuiz, options: { id: string; createdAt: string; questionType: QuizSet['questionType']; source?: string; fileName?: string }): QuizSet {
   try {
-    const parsed: MaytoonQuiz = typeof data === 'string' ? JSON.parse(data) : data;
+    let parsed: MaytoonQuiz;
+    if (typeof data === 'string') {
+      const trimmed = data.trim();
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        parsed = JSON.parse(trimmed);
+      } else {
+        parsed = decodeToon(trimmed) as MaytoonQuiz;
+      }
+    } else {
+      parsed = data;
+    }
     
     const questions: QuizQuestion[] = (parsed.qs || []).map((q) => {
       if (q.k === 'mc') {

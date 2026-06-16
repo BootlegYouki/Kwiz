@@ -38,7 +38,13 @@ export const TuiHeader: React.FC<TuiHeaderProps> = ({
           {title}
         </TuiText>
         {subtitle && (
-          <TuiText size="md" weight="bold" style={{ color: colors.mutedForeground, marginLeft: 8 }}>
+          <TuiText 
+            size="md" 
+            weight="bold" 
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={{ color: colors.mutedForeground, marginLeft: 8, flex: 1 }}
+          >
             // {subtitle}
           </TuiText>
         )}
@@ -67,6 +73,8 @@ const styles = StyleSheet.create({
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
   },
   rightSection: {
     alignItems: 'center',

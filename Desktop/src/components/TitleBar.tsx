@@ -85,8 +85,8 @@ export const TitleBar: React.FC<TitleBarProps> = ({
     <>
       <div className={`titlebar ${className || ''}`}>
         {/* Left icon */}
-        <div className="titlebar-icon text-primary flex items-center justify-center" data-tauri-drag-region>
-          {Icon ? <Icon className={iconSize} /> : <IconSvg className="w-[18px] h-[18px]" />}
+        <div className="titlebar-icon flex items-center justify-center" data-tauri-drag-region>
+          {Icon ? <Icon className={iconSize} /> : <IconSvg className="w-[18px] h-[18px]" color="var(--color-foreground)" />}
         </div>
 
         {/* Centered title */}

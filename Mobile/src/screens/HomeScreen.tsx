@@ -14,14 +14,6 @@ interface HomeScreenProps {
 export const HomeScreen: React.FC<HomeScreenProps> = ({ quizzes, onSelectQuiz, onLongPressQuiz }) => {
   const { colors } = useTheme();
 
-  const mockGeneratingQuiz: QuizSet = {
-    id: 'generating-demo',
-    title: 'Demo AI Quiz (Generating)',
-    createdAt: new Date().toISOString(),
-    questionType: 'multiple_choice',
-    questions: [],
-    status: 'generating',
-  };
 
   return (
     <View style={styles.container}>
@@ -30,12 +22,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ quizzes, onSelectQuiz, o
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.quizList}>
-          {/* Demo generating card to see what it looks like */}
-          <QuizCard
-            quiz={mockGeneratingQuiz}
-            onPress={() => {}}
-          />
-
           {quizzes.length === 0 ? (
             <View style={[styles.emptyContainer, { borderColor: colors.primary, marginTop: 8 }]}>
               <TuiText weight="bold" style={{ textAlign: 'center' }}>

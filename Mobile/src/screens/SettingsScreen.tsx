@@ -1,16 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/theme-provider';
 import { TuiContainer } from '../components/tui-container';
 import { TuiText } from '../components/tui-text';
 import { TuiButton } from '../components/tui-button';
+import { TuiInput } from '../components/tui-input';
+
+const API_KEY_STORAGE_KEY = 'kwiz_mistral_api_key';
 
 interface SettingsScreenProps {}
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
   const { colors, isDark, setThemeMode } = useTheme();
   const insets = useSafeAreaInsets();
+  const [apiKey, setApiKey] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    SecureStore.getItemAsync(API_KEY_STORAGE_KEY).then(val => {
+      if (val) setApiKey(val);
+    });
+  }, []);
+
+  const handleSave = async () => {
+    await SecureStore.setItemAsync(API_KEY_STORAGE_KEY, apiKey.trim());
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -45,21 +63,27 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = () => {
           </View>
         </TuiContainer>
 
-        {/* Google Drive Synchronization Settings */}
-        <TuiContainer label="Connect to Cloud" style={styles.containerMargin}>
-          <View style={styles.disconnectedCard}>
-            <TuiText size="sm" style={styles.infoText}>
-              Link Google Drive to back up your quizzes and study notes automatically.
-            </TuiText>
-            <TuiButton
-              onPress={() => {}}
-              variant="outline"
-              style={styles.linkBtn}
-              disabled={true}
-            >
-              Connect Google Drive (Phase 3)
-            </TuiButton>
-          </View>
+        {/* Mistral API Config */}
+        <TuiContainer label="Mistral AI" style={styles.containerMargin}>
+          <TuiText size="sm" style={styles.infoText}>
+            Enter your Mistral API key to enable AI quiz generation from your documents.
+          </TuiText>
+          <TuiInput
+            value={apiKey}
+            onChangeText={setApiKey}
+            placeholder="Enter your Mistral API key..."
+            secureTextEntry={true}
+            showSecureToggle={true}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <TuiButton
+            onPress={handleSave}
+            variant="accent"
+            style={styles.saveBtn}
+          >
+            {saved ? 'Saved!' : 'Save API Key'}
+          </TuiButton>
         </TuiContainer>
       </ScrollView>
     </View>
@@ -97,14 +121,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 0,
   },
-  disconnectedCard: {
-    paddingVertical: 8,
-  },
   infoText: {
     marginBottom: 16,
     lineHeight: 18,
   },
-  linkBtn: {
+  saveBtn: {
     height: 44,
     justifyContent: 'center',
     paddingVertical: 0,

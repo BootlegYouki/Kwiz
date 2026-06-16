@@ -35,18 +35,18 @@ export const IconSvg: React.FC<React.SVGProps<SVGSVGElement> & { color?: string 
       <rect x="6" y="4" width="1" height="1" fill={color} />
       <rect x="7" y="4" width="1" height="1" fill={color} />
       <rect x="8" y="4" width="1" height="1" fill={color} />
-      <rect x="9" y="4" width="1" height="1" fill="none" />
+      <rect x="9" y="4" width="1" height="1" fill="var(--color-card, #18181b)" />
       <rect x="10" y="4" width="1" height="1" fill={color} />
       <rect x="11" y="4" width="1" height="1" fill={color} />
       <rect x="12" y="4" width="1" height="1" fill={color} />
       <rect x="3" y="5" width="1" height="1" fill={color} />
-      <rect x="4" y="5" width="1" height="1" fill="none" />
+      <rect x="4" y="5" width="1" height="1" fill="var(--color-card, #18181b)" />
       <rect x="5" y="5" width="1" height="1" fill={color} />
-      <rect x="6" y="5" width="1" height="1" fill="none" />
+      <rect x="6" y="5" width="1" height="1" fill="var(--color-card, #18181b)" />
       <rect x="7" y="5" width="1" height="1" fill={color} />
-      <rect x="8" y="5" width="1" height="1" fill="none" />
-      <rect x="9" y="5" width="1" height="1" fill="none" />
-      <rect x="10" y="5" width="1" height="1" fill="none" />
+      <rect x="8" y="5" width="1" height="1" fill="var(--color-card, #18181b)" />
+      <rect x="9" y="5" width="1" height="1" fill="var(--color-card, #18181b)" />
+      <rect x="10" y="5" width="1" height="1" fill="var(--color-card, #18181b)" />
       <rect x="11" y="5" width="1" height="1" fill={color} />
       <rect x="12" y="5" width="1" height="1" fill={color} />
       <rect x="3" y="6" width="1" height="1" fill={color} />
@@ -55,7 +55,7 @@ export const IconSvg: React.FC<React.SVGProps<SVGSVGElement> & { color?: string 
       <rect x="6" y="6" width="1" height="1" fill={color} />
       <rect x="7" y="6" width="1" height="1" fill={color} />
       <rect x="8" y="6" width="1" height="1" fill={color} />
-      <rect x="9" y="6" width="1" height="1" fill="none" />
+      <rect x="9" y="6" width="1" height="1" fill="var(--color-card, #18181b)" />
       <rect x="10" y="6" width="1" height="1" fill={color} />
       <rect x="11" y="6" width="1" height="1" fill={color} />
       <rect x="12" y="6" width="1" height="1" fill={color} />
@@ -75,7 +75,7 @@ export const IconSvg: React.FC<React.SVGProps<SVGSVGElement> & { color?: string 
       <rect x="6" y="8" width="1" height="1" fill={color} />
       <rect x="7" y="8" width="1" height="1" fill={color} />
       <rect x="8" y="8" width="1" height="1" fill={color} />
-      <rect x="9" y="8" width="1" height="1" fill="none" />
+      <rect x="9" y="8" width="1" height="1" fill="var(--color-card, #18181b)" />
       <rect x="10" y="8" width="1" height="1" fill={color} />
       <rect x="11" y="8" width="1" height="1" fill={color} />
       <rect x="12" y="8" width="1" height="1" fill={color} />
@@ -95,7 +95,7 @@ export const IconSvg: React.FC<React.SVGProps<SVGSVGElement> & { color?: string 
       <rect x="6" y="10" width="1" height="1" fill={color} />
       <rect x="7" y="10" width="1" height="1" fill={color} />
       <rect x="8" y="10" width="1" height="1" fill={color} />
-      <rect x="9" y="10" width="1" height="1" fill="none" />
+      <rect x="9" y="10" width="1" height="1" fill="var(--color-card, #18181b)" />
       <rect x="10" y="10" width="1" height="1" fill={color} />
       <rect x="11" y="10" width="1" height="1" fill={color} />
       <rect x="12" y="10" width="1" height="1" fill={color} />
@@ -115,7 +115,7 @@ export const IconSvg: React.FC<React.SVGProps<SVGSVGElement> & { color?: string 
       <rect x="6" y="12" width="1" height="1" fill={color} />
       <rect x="7" y="12" width="1" height="1" fill={color} />
       <rect x="8" y="12" width="1" height="1" fill={color} />
-      <rect x="9" y="12" width="1" height="1" fill="none" />
+      <rect x="9" y="12" width="1" height="1" fill="var(--color-card, #18181b)" />
       <rect x="10" y="12" width="1" height="1" fill={color} />
       <rect x="11" y="12" width="1" height="1" fill={color} />
       <rect x="12" y="12" width="1" height="1" fill={color} />
