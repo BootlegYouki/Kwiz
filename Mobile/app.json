@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kwiz",
     "slug": "kwiz",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -21,16 +21,22 @@
             "CFBundleTypeName": "Kwiz File",
             "CFBundleTypeRole": "Viewer",
             "LSHandlerRank": "Owner",
-            "LSItemContentTypes": ["com.bootlegyouki.kwiz"]
+            "LSItemContentTypes": [
+              "com.bootlegyouki.kwiz"
+            ]
           }
         ],
         "UTExportedTypeDeclarations": [
           {
             "UTTypeIdentifier": "com.bootlegyouki.kwiz",
-            "UTTypeConformsTo": ["public.data"],
+            "UTTypeConformsTo": [
+              "public.data"
+            ],
             "UTTypeDescription": "Kwiz Quiz File",
             "UTTypeTagSpecification": {
-              "public.filename-extension": ["kwiz"]
+              "public.filename-extension": [
+                "kwiz"
+              ]
             }
           }
         ]
@@ -46,7 +52,10 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "categories": ["DEFAULT", "BROWSABLE"],
+          "categories": [
+            "DEFAULT",
+            "BROWSABLE"
+          ],
           "data": [
             {
               "scheme": "file",
@@ -62,7 +71,8 @@
             }
           ]
         }
-      ]
+      ],
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png"
