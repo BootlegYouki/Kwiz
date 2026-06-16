@@ -502,7 +502,6 @@ export default function App() {
   }, []);
 
   // ── Quiz Player state ──────────────────────────────────────────────────────
-  const [retryMode, setRetryMode] = useState(false);
   const [questionQueue, setQuestionQueue] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
@@ -580,12 +579,12 @@ export default function App() {
 
     const q = questionQueue[currentIndex];
     const isCorrect = checkAnswer(q, ans);
-    if (retryMode && !isCorrect) {
+    if (!isCorrect) {
       const nextQueue = [...questionQueue, q];
       const nextAnswers = [...userAnswers];
       nextAnswers[currentIndex] = ans;
       const nextLockedQueue = [...nextLocked];
-      
+
       nextAnswers.push('');
       nextLockedQueue.push(false);
 
@@ -607,8 +606,26 @@ export default function App() {
       return;
     }
 
-    if (currentIndex + 1 < questionQueue.length) {
-      setCurrentIndex(currentIndex + 1);
+    let targetIndex = currentIndex + 1;
+    while (targetIndex < questionQueue.length) {
+      const q = questionQueue[targetIndex];
+      let alreadyCorrect = false;
+      for (let i = 0; i < questionQueue.length; i++) {
+        if (questionQueue[i] === q && lockedStates[i]) {
+          if (checkAnswer(questionQueue[i], userAnswers[i])) {
+            alreadyCorrect = true;
+            break;
+          }
+        }
+      }
+      if (!alreadyCorrect) {
+        break;
+      }
+      targetIndex++;
+    }
+
+    if (targetIndex < questionQueue.length) {
+      setCurrentIndex(targetIndex);
     } else {
       let score = 0;
       selectedQuiz.questions.forEach((qq, i) => { if (checkAnswer(qq, userAnswers[i])) score++; });
@@ -620,7 +637,27 @@ export default function App() {
   };
 
   const handlePrev = () => {
-    if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
+    let targetIndex = currentIndex - 1;
+    while (targetIndex >= 0) {
+      const q = questionQueue[targetIndex];
+      let alreadyCorrect = false;
+      for (let i = 0; i < questionQueue.length; i++) {
+        if (questionQueue[i] === q && lockedStates[i]) {
+          if (checkAnswer(questionQueue[i], userAnswers[i])) {
+            alreadyCorrect = true;
+            break;
+          }
+        }
+      }
+      if (!alreadyCorrect) {
+        break;
+      }
+      targetIndex--;
+    }
+
+    if (targetIndex >= 0) {
+      setCurrentIndex(targetIndex);
+    }
   };
 
   const handleExitQuiz = () => {
@@ -642,7 +679,6 @@ export default function App() {
 
   const handleRetake = () => {
     if (!selectedQuiz) return;
-    setRetryMode(false);
     startQuiz(selectedQuiz);
   };
 
@@ -906,6 +942,7 @@ export default function App() {
 
   // ── Player helpers ─────────────────────────────────────────────────────────
   const currentQuestion = questionQueue[currentIndex] ?? null;
+  const currentOriginalIndex = selectedQuiz && currentQuestion ? selectedQuiz.questions.indexOf(currentQuestion) : -1;
   const selectedAnswer = userAnswers[currentIndex] ?? '';
   const isLocked = lockedStates[currentIndex] ?? false;
   const totalQ = view === 'results' ? finalQueue.length : questionQueue.length;
@@ -1123,43 +1160,56 @@ export default function App() {
                       style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
                       contentStyle={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', minHeight: 0, overflowY: 'auto' }}
                     >
-                      {/* Question number buttons */}
-                      {questionQueue.map((q, idx) => {
-                        const answered = lockedStates[idx];
-                        const correct = answered && checkAnswer(q, userAnswers[idx]);
-                        const wrong = answered && !correct;
-                        const active = idx === currentIndex;
-                        const isRetry = selectedQuiz && idx >= selectedQuiz.questions.length;
+                      {/* Question number buttons — only original questions */}
+                      {selectedQuiz.questions.map((q, origIdx) => {
+                        // Scan the full queue: active = any slot at currentIndex, answered = latest locked slot
+                        let latestAnswered = false;
+                        let latestCorrect = false;
+                        let isActive = false;
+                        for (let i = questionQueue.length - 1; i >= 0; i--) {
+                          if (questionQueue[i] === q) {
+                            if (i === currentIndex) isActive = true;
+                            if (!latestAnswered && lockedStates[i]) {
+                              latestAnswered = true;
+                              latestCorrect = checkAnswer(q, userAnswers[i]);
+                            }
+                          }
+                        }
 
                         let cls = 'border-border text-muted hover:border-foreground hover:text-foreground';
-                        if (active && !answered) cls = 'border-primary text-primary bg-primary/10';
-                        if (correct) cls = 'border-green-500 text-green-500 bg-green-500/10';
-                        if (wrong) cls = 'border-destructive text-destructive bg-destructive/10';
-                        if (active && answered && correct) cls = 'border-green-500 text-green-500 bg-green-500/20';
-                        if (active && answered && wrong) cls = 'border-destructive text-destructive bg-destructive/20';
+                        if (isActive && !latestAnswered) cls = 'border-primary text-primary bg-primary/10';
+                        if (latestCorrect) cls = 'border-green-500 text-green-500 bg-green-500/10';
+                        if (latestAnswered && !latestCorrect) cls = 'border-destructive text-destructive bg-destructive/10';
+                        if (isActive && latestAnswered && latestCorrect) cls = 'border-green-500 text-green-500 bg-green-500/20';
+                        if (isActive && latestAnswered && !latestCorrect) cls = 'border-destructive text-destructive bg-destructive/20';
+
+                        // Navigate to the latest occurrence of this question in the queue
+                        const handleClick = () => {
+                          for (let i = questionQueue.length - 1; i >= 0; i--) {
+                            if (questionQueue[i] === q && !lockedStates[i]) {
+                              setCurrentIndex(i);
+                              return;
+                            }
+                          }
+                          // fallback: first occurrence
+                          const first = questionQueue.indexOf(q);
+                          if (first !== -1) setCurrentIndex(first);
+                        };
 
                         return (
                           <button
-                            key={idx}
-                            onClick={() => setCurrentIndex(idx)}
+                            key={origIdx}
+                            onClick={handleClick}
                             className={`w-full border-[1.5px] px-4 py-3 text-left text-sm font-bold font-mono cursor-pointer select-none transition-all shrink-0 truncate ${cls}`}
-                            title={`${isRetry ? '[RETRY] ' : ''}Q${idx + 1}: ${q.question}`}
+                            title={`Q${origIdx + 1}: ${q.question}`}
                           >
                             {q.question}
                           </button>
                         );
                       })}
 
-                      {/* Retry toggle + Exit at bottom */}
+                      {/* Exit at bottom */}
                       <div className="mt-auto pt-3 shrink-0 flex flex-col gap-2">
-                        <button
-                          onClick={() => setRetryMode(r => !r)}
-                          className={`w-full border-[1.5px] px-3 py-2 text-sm font-bold font-mono transition-all cursor-pointer select-none flex items-center justify-between gap-2 ${retryMode ? 'border-amber-500 text-amber-500 bg-amber-500/10' : 'border-border text-muted hover:border-foreground hover:text-foreground'
-                            }`}
-                        >
-                          <span>Retry Wrong</span>
-                          <span className={`text-xs font-mono ${retryMode ? 'text-amber-500' : 'text-muted'}`}>{retryMode ? 'ON' : 'OFF'}</span>
-                        </button>
                         <TuiButton
                           onPress={handleExitQuiz}
                           variant="destructive"
@@ -1174,7 +1224,7 @@ export default function App() {
                   {/* RIGHT — Question + answer area */}
                   <div className="flex-1 flex flex-col gap-4 min-h-0 min-w-0">
                     {/* Question */}
-                    <TuiContainer label={`Question ${currentIndex + 1}`}>
+                    <TuiContainer label={`Question ${(currentOriginalIndex !== -1 ? currentOriginalIndex : currentIndex) + 1} / ${selectedQuiz.questions.length}`}>
                       <p className="text-lg md:text-xl font-bold leading-relaxed text-foreground py-2">
                         {currentQuestion.question}
                       </p>

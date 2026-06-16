@@ -8,7 +8,6 @@
   "permissions": [
     "core:default",
     "opener:default",
-    "updater:default",
     "core:window:allow-close",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
@@ -18,13 +17,6 @@
     "core:window:allow-set-focus",
     "core:window:allow-hide",
     "dialog:default",
-    "app:allow-greet",
-    "app:allow-start-oauth-server",
-    "app:allow-check-markitdown",
-    "app:allow-convert-to-markdown",
-    "app:allow-generate-quiz",
-    "app:allow-read-kwiz-file",
-    "app:allow-write-kwiz-file",
     {
       "identifier": "http:default",
       "allow": [
