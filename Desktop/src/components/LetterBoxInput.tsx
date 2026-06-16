@@ -7,26 +7,6 @@ interface LetterBoxInputProps {
   correctAnswer?: string;
 }
 
-function formatValueWithSpaces(rawVal: string, correctAnswer: string): string {
-  const chars = rawVal.replace(/\s/g, '').split('');
-  let formatted = '';
-  let charIdx = 0;
-  
-  for (let i = 0; i < correctAnswer.length; i++) {
-    if (correctAnswer[i] === ' ') {
-      formatted += ' ';
-    } else {
-      if (charIdx < chars.length) {
-        formatted += chars[charIdx];
-        charIdx++;
-      } else {
-        break;
-      }
-    }
-  }
-  return formatted;
-}
-
 export const LetterBoxInput: React.FC<LetterBoxInputProps> = ({ value, onChange, charCount, correctAnswer }) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -38,9 +18,9 @@ export const LetterBoxInput: React.FC<LetterBoxInputProps> = ({ value, onChange,
     inputRef.current?.focus();
   }, []);
 
-  // Split correctAnswer by spaces to define word groups
   const words = correctAnswer ? correctAnswer.split(' ') : [];
   const wordSpecs = words.length > 0 ? words : [ { length: charCount } ];
+  const maxChars = correctAnswer ? correctAnswer.replace(/\s/g, '').length : charCount;
 
   let currentCharIndex = 0;
   const wordGroups = wordSpecs.map((word, wordIdx) => {
@@ -53,8 +33,6 @@ export const LetterBoxInput: React.FC<LetterBoxInputProps> = ({ value, onChange,
       });
       currentCharIndex++;
     }
-    // Skip space character in value mapping
-    currentCharIndex++;
     
     return {
       wordIdx,
@@ -69,14 +47,10 @@ export const LetterBoxInput: React.FC<LetterBoxInputProps> = ({ value, onChange,
         type="text"
         value={value}
         onChange={(e) => {
-          let cleanedText = e.target.value.replace(/[^a-zA-Z0-9 ]/g, '');
-          if (correctAnswer) {
-            cleanedText = formatValueWithSpaces(cleanedText, correctAnswer);
-          }
-          cleanedText = cleanedText.substring(0, charCount);
+          const cleanedText = e.target.value.replace(/[^a-zA-Z0-9]/g, '').substring(0, maxChars);
           onChange(cleanedText);
         }}
-        maxLength={charCount}
+        maxLength={maxChars}
         className="absolute w-0 h-0 opacity-0 pointer-events-none"
         autoCapitalize="none"
         autoComplete="off"
@@ -88,7 +62,7 @@ export const LetterBoxInput: React.FC<LetterBoxInputProps> = ({ value, onChange,
         {wordGroups.map((group) => (
           <div key={group.wordIdx} className="flex gap-2">
             {group.boxes.map((box) => {
-              const isFocused = box.globalIndex === Math.min(value.length, charCount - 1);
+              const isFocused = box.globalIndex === Math.min(value.length, maxChars - 1);
               return (
                 <div
                   key={box.globalIndex}

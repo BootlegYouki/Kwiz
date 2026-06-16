@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Alert, Keyboard } from 'react-native';
 import { TuiContainer } from '../components/tui-container';
 import { TuiText } from '../components/tui-text';
 import { TuiButton } from '../components/tui-button';
@@ -39,17 +39,38 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
     }
   };
 
-  const handleLockIn = () => {
-    if (!selectedAnswer.trim()) return;
+  const handleLockIn = (overrideValue?: string) => {
+    const ans = overrideValue !== undefined ? overrideValue : selectedAnswer;
     const nextLocked = [...lockedStates];
     nextLocked[currentIndex] = true;
-    setLockedStates(nextLocked);
+
+    const isCorrect = checkAnswer(currentQuestion, ans);
+    if (!isCorrect) {
+      const nextQueue = [...questionQueue, currentQuestion];
+      const nextAnswers = [...userAnswers];
+      nextAnswers[currentIndex] = ans;
+      const nextLockedQueue = [...nextLocked];
+      
+      nextAnswers.push('');
+      nextLockedQueue.push(false);
+
+      setQuestionQueue(nextQueue);
+      setUserAnswers(nextAnswers);
+      setLockedStates(nextLockedQueue);
+    } else {
+      const nextAnswers = [...userAnswers];
+      nextAnswers[currentIndex] = ans;
+      setUserAnswers(nextAnswers);
+      setLockedStates(nextLocked);
+    }
+
+    Keyboard.dismiss();
   };
 
   const checkAnswer = (question: QuizQuestion, answerStr: string): boolean => {
     if (!answerStr) return false;
-    const normalizedAnswer = answerStr.toLowerCase().trim();
-    const correctAnswer = question.answer.toLowerCase().trim();
+    const normalizedAnswer = answerStr.toLowerCase().replace(/\s/g, '');
+    const correctAnswer = question.answer.toLowerCase().replace(/\s/g, '');
 
     if (normalizedAnswer === correctAnswer) return true;
 
@@ -57,7 +78,7 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
       const letterMap = ['a', 'b', 'c', 'd'];
       const ansIdx = letterMap.indexOf(correctAnswer);
       if (ansIdx !== -1 && question.choices[ansIdx]) {
-        const correctChoiceText = question.choices[ansIdx].toLowerCase().trim();
+        const correctChoiceText = question.choices[ansIdx].toLowerCase().replace(/\s/g, '');
         if (normalizedAnswer === correctChoiceText) {
           return true;
         }
@@ -91,27 +112,18 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
   };
 
   const handleNext = () => {
-    const isCorrect = checkAnswer(currentQuestion, selectedAnswer);
-    let nextQueue = questionQueue;
-    let nextAnswers = userAnswers;
-    let nextLocked = lockedStates;
-
-    if (!isCorrect) {
-      nextQueue = [...questionQueue, currentQuestion];
-      nextAnswers = [...userAnswers, ''];
-      nextLocked = [...lockedStates, false];
-      setQuestionQueue(nextQueue);
-      setUserAnswers(nextAnswers);
-      setLockedStates(nextLocked);
+    if (!isLocked) {
+      handleLockIn();
+      return;
     }
 
     let targetIndex = currentIndex + 1;
-    while (targetIndex < nextQueue.length) {
-      const q = nextQueue[targetIndex];
+    while (targetIndex < questionQueue.length) {
+      const q = questionQueue[targetIndex];
       let alreadyCorrect = false;
-      for (let i = 0; i < nextQueue.length; i++) {
-        if (nextQueue[i] === q && nextLocked[i]) {
-          if (checkAnswer(nextQueue[i], nextAnswers[i])) {
+      for (let i = 0; i < questionQueue.length; i++) {
+        if (questionQueue[i] === q && lockedStates[i]) {
+          if (checkAnswer(questionQueue[i], userAnswers[i])) {
             alreadyCorrect = true;
             break;
           }
@@ -123,17 +135,16 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
       targetIndex++;
     }
 
-    if (targetIndex < nextQueue.length) {
+    if (targetIndex < questionQueue.length) {
       setCurrentIndex(targetIndex);
     } else {
-      // Calculate final score dynamically (based on first attempts)
       let finalScore = 0;
       quiz.questions.forEach((q, idx) => {
-        if (checkAnswer(q, nextAnswers[idx])) {
+        if (checkAnswer(q, userAnswers[idx])) {
           finalScore += 1;
         }
       });
-      onFinish(finalScore, nextAnswers, nextQueue);
+      onFinish(finalScore, userAnswers, questionQueue);
     }
   };
 
@@ -271,13 +282,15 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
                   const nextAnswers = [...userAnswers];
                   nextAnswers[currentIndex] = val;
                   setUserAnswers(nextAnswers);
-                  if (currentQuestion.charCount && val.length === currentQuestion.charCount) {
-                    const nextLocked = [...lockedStates];
-                    nextLocked[currentIndex] = true;
-                    setLockedStates(nextLocked);
+                  const lettersOnly = val.replace(/[^a-zA-Z0-9]/g, '');
+                  const expectedChars = currentQuestion.answer ? currentQuestion.answer.replace(/\s/g, '').length : currentQuestion.charCount;
+                  if (expectedChars && lettersOnly.length === expectedChars) {
+                    handleLockIn(val);
                   }
                 }}
                 charCount={currentQuestion.charCount}
+                correctAnswer={currentQuestion.answer}
+                isLocked={isLocked}
               />
 
               {isLocked && (
@@ -314,7 +327,7 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
           <TuiButton
             onPress={handleNext}
             variant={currentIndex + 1 === totalQuestions ? 'accent' : 'outline'}
-            disabled={!isLocked}
+            disabled={currentQuestion.type === 'multiple_choice' && !selectedAnswer}
             style={styles.halfBtn}
             fullWidth={false}
           >

@@ -56,8 +56,8 @@ type AppView = 'home' | 'playing' | 'results';
 
 function checkAnswer(question: QuizQuestion, answer: string): boolean {
   if (!answer) return false;
-  const normalizedAnswer = answer.toLowerCase().trim();
-  const correctAnswer = question.answer.toLowerCase().trim();
+  const normalizedAnswer = answer.toLowerCase().replace(/\s/g, '');
+  const correctAnswer = question.answer.toLowerCase().replace(/\s/g, '');
 
   if (normalizedAnswer === correctAnswer) return true;
 
@@ -65,7 +65,7 @@ function checkAnswer(question: QuizQuestion, answer: string): boolean {
     const letterMap = ['a', 'b', 'c', 'd'];
     const ansIdx = letterMap.indexOf(correctAnswer);
     if (ansIdx !== -1 && question.choices[ansIdx]) {
-      const correctChoiceText = question.choices[ansIdx].toLowerCase().trim();
+      const correctChoiceText = question.choices[ansIdx].toLowerCase().replace(/\s/g, '');
       if (normalizedAnswer === correctChoiceText) {
         return true;
       }
@@ -586,38 +586,49 @@ export default function App() {
     startQuiz(quiz);
   };
 
-  const handleLockIn = () => {
-    const next = [...lockedStates];
-    next[currentIndex] = true;
-    setLockedStates(next);
+  const handleLockIn = (overrideValue?: string) => {
+    if (!selectedQuiz) return;
+    const ans = overrideValue !== undefined ? overrideValue : userAnswers[currentIndex];
+    const nextLocked = [...lockedStates];
+    nextLocked[currentIndex] = true;
+
+    const q = questionQueue[currentIndex];
+    const isCorrect = checkAnswer(q, ans);
+    if (retryMode && !isCorrect) {
+      const nextQueue = [...questionQueue, q];
+      const nextAnswers = [...userAnswers];
+      nextAnswers[currentIndex] = ans;
+      const nextLockedQueue = [...nextLocked];
+      
+      nextAnswers.push('');
+      nextLockedQueue.push(false);
+
+      setQuestionQueue(nextQueue);
+      setUserAnswers(nextAnswers);
+      setLockedStates(nextLockedQueue);
+    } else {
+      const nextAnswers = [...userAnswers];
+      nextAnswers[currentIndex] = ans;
+      setUserAnswers(nextAnswers);
+      setLockedStates(nextLocked);
+    }
   };
 
   const handleNext = () => {
     if (!selectedQuiz) return;
-    const q = questionQueue[currentIndex];
-    const isCorrect = checkAnswer(q, userAnswers[currentIndex]);
-
-    let newQueue = questionQueue;
-    let newAnswers = userAnswers;
-    let newLocked = lockedStates;
-
-    if (retryMode && !isCorrect) {
-      newQueue = [...questionQueue, q];
-      newAnswers = [...userAnswers, ''];
-      newLocked = [...lockedStates, false];
-      setQuestionQueue(newQueue);
-      setUserAnswers(newAnswers);
-      setLockedStates(newLocked);
+    if (!lockedStates[currentIndex]) {
+      handleLockIn();
+      return;
     }
 
-    if (currentIndex + 1 < newQueue.length) {
+    if (currentIndex + 1 < questionQueue.length) {
       setCurrentIndex(currentIndex + 1);
     } else {
       let score = 0;
-      newQueue.forEach((qq, i) => { if (checkAnswer(qq, newAnswers[i])) score++; });
+      selectedQuiz.questions.forEach((qq, i) => { if (checkAnswer(qq, userAnswers[i])) score++; });
       setFinalScore(score);
-      setFinalAnswers([...newAnswers]);
-      setFinalQueue([...newQueue]);
+      setFinalAnswers([...userAnswers]);
+      setFinalQueue([...questionQueue]);
       setView('results');
     }
   };
@@ -1225,9 +1236,10 @@ export default function App() {
                               const next = [...userAnswers];
                               next[currentIndex] = val;
                               setUserAnswers(next);
-                              // auto-lock when all boxes filled
-                              if (currentQuestion.charCount && val.length === currentQuestion.charCount) {
-                                handleLockIn();
+                              const lettersOnly = val.replace(/[^a-zA-Z0-9]/g, '');
+                              const expectedChars = currentQuestion.answer ? currentQuestion.answer.replace(/\s/g, '').length : currentQuestion.charCount;
+                              if (expectedChars && lettersOnly.length === expectedChars) {
+                                handleLockIn(val);
                               }
                             }}
                             charCount={currentQuestion.charCount}
@@ -1261,7 +1273,7 @@ export default function App() {
                       <TuiButton
                         onPress={handleNext}
                         variant={currentIndex + 1 === totalQ ? 'accent' : 'outline'}
-                        disabled={!isLocked}
+                        disabled={currentQuestion.type === 'multiple_choice' && !selectedAnswer}
                         className="!w-auto px-4"
                       >
                         {currentIndex + 1 === totalQ ? 'Finish' : <ChevronRight size={16} />}

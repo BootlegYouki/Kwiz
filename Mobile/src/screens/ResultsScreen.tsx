@@ -33,8 +33,8 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ quiz, score, answe
   const isCorrect = (index: number) => {
     const question = questionsToRender[index];
     const answer = answers[index] || '';
-    const normalizedAnswer = answer.toLowerCase().trim();
-    const correctAnswer = question.answer.toLowerCase().trim();
+    const normalizedAnswer = answer.toLowerCase().replace(/\s/g, '');
+    const correctAnswer = question.answer.toLowerCase().replace(/\s/g, '');
 
     if (normalizedAnswer === correctAnswer) return true;
 
@@ -42,7 +42,7 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({ quiz, score, answe
       const letterMap = ['a', 'b', 'c', 'd'];
       const ansIdx = letterMap.indexOf(correctAnswer);
       if (ansIdx !== -1 && question.choices[ansIdx]) {
-        const correctChoiceText = question.choices[ansIdx].toLowerCase().trim();
+        const correctChoiceText = question.choices[ansIdx].toLowerCase().replace(/\s/g, '');
         if (normalizedAnswer === correctChoiceText) {
           return true;
         }
