@@ -6,63 +6,129 @@ export const IconSvg: React.FC<React.SVGProps<SVGSVGElement> & { color?: string 
 }) => {
   return (
     <svg
-      viewBox="0 0 100 100"
+      viewBox="0 0 16 16"
       width="100%"
       height="100%"
       fill="none"
       {...props}
     >
-      {/* Outer retro monitor shell */}
-      <rect
-        x="5"
-        y="10"
-        width="90"
-        height="70"
-        rx="0"
-        stroke={color}
-        strokeWidth="6"
-        fill="none"
-      />
-      {/* Screen area */}
-      <rect
-        x="12"
-        y="17"
-        width="76"
-        height="56"
-        rx="0"
-        fill={color}
-        fillOpacity="0.08"
-        stroke={color}
-        strokeWidth="2"
-      />
-      {/* Stand neck */}
-      <path
-        d="M 40 80 L 60 80 L 65 92 L 35 92 Z"
-        fill="none"
-        stroke={color}
-        strokeWidth="6"
-      />
-      {/* Stand base */}
-      <path
-        d="M 20 92 L 80 92"
-        stroke={color}
-        strokeWidth="6"
-      />
-      {/* Terminal prompt symbol '>_' */}
-      <path
-        d="M 22 35 L 34 45 L 22 55"
-        stroke={color}
-        strokeWidth="5"
-        strokeLinecap="square"
-        strokeLinejoin="miter"
-      />
-      <rect
-        x="38"
-        y="50"
-        width="15"
-        height="5"
-        fill={color}
-      />
+      <rect x="3" y="2" width="1" height="1" fill={color} />
+      <rect x="4" y="2" width="1" height="1" fill={color} />
+      <rect x="5" y="2" width="1" height="1" fill={color} />
+      <rect x="6" y="2" width="1" height="1" fill={color} />
+      <rect x="7" y="2" width="1" height="1" fill={color} />
+      <rect x="8" y="2" width="1" height="1" fill={color} />
+      <rect x="9" y="2" width="1" height="1" fill={color} />
+      <rect x="10" y="2" width="1" height="1" fill={color} />
+      <rect x="3" y="3" width="1" height="1" fill={color} />
+      <rect x="4" y="3" width="1" height="1" fill={color} />
+      <rect x="5" y="3" width="1" height="1" fill={color} />
+      <rect x="6" y="3" width="1" height="1" fill={color} />
+      <rect x="7" y="3" width="1" height="1" fill={color} />
+      <rect x="8" y="3" width="1" height="1" fill={color} />
+      <rect x="9" y="3" width="1" height="1" fill={color} />
+      <rect x="10" y="3" width="1" height="1" fill={color} />
+      <rect x="11" y="3" width="1" height="1" fill={color} />
+      <rect x="3" y="4" width="1" height="1" fill={color} />
+      <rect x="4" y="4" width="1" height="1" fill={color} />
+      <rect x="5" y="4" width="1" height="1" fill={color} />
+      <rect x="6" y="4" width="1" height="1" fill={color} />
+      <rect x="7" y="4" width="1" height="1" fill={color} />
+      <rect x="8" y="4" width="1" height="1" fill={color} />
+      <rect x="9" y="4" width="1" height="1" fill="none" />
+      <rect x="10" y="4" width="1" height="1" fill={color} />
+      <rect x="11" y="4" width="1" height="1" fill={color} />
+      <rect x="12" y="4" width="1" height="1" fill={color} />
+      <rect x="3" y="5" width="1" height="1" fill={color} />
+      <rect x="4" y="5" width="1" height="1" fill="none" />
+      <rect x="5" y="5" width="1" height="1" fill={color} />
+      <rect x="6" y="5" width="1" height="1" fill="none" />
+      <rect x="7" y="5" width="1" height="1" fill={color} />
+      <rect x="8" y="5" width="1" height="1" fill="none" />
+      <rect x="9" y="5" width="1" height="1" fill="none" />
+      <rect x="10" y="5" width="1" height="1" fill="none" />
+      <rect x="11" y="5" width="1" height="1" fill={color} />
+      <rect x="12" y="5" width="1" height="1" fill={color} />
+      <rect x="3" y="6" width="1" height="1" fill={color} />
+      <rect x="4" y="6" width="1" height="1" fill={color} />
+      <rect x="5" y="6" width="1" height="1" fill={color} />
+      <rect x="6" y="6" width="1" height="1" fill={color} />
+      <rect x="7" y="6" width="1" height="1" fill={color} />
+      <rect x="8" y="6" width="1" height="1" fill={color} />
+      <rect x="9" y="6" width="1" height="1" fill="none" />
+      <rect x="10" y="6" width="1" height="1" fill={color} />
+      <rect x="11" y="6" width="1" height="1" fill={color} />
+      <rect x="12" y="6" width="1" height="1" fill={color} />
+      <rect x="3" y="7" width="1" height="1" fill={color} />
+      <rect x="4" y="7" width="1" height="1" fill={color} />
+      <rect x="5" y="7" width="1" height="1" fill={color} />
+      <rect x="6" y="7" width="1" height="1" fill={color} />
+      <rect x="7" y="7" width="1" height="1" fill={color} />
+      <rect x="8" y="7" width="1" height="1" fill={color} />
+      <rect x="9" y="7" width="1" height="1" fill={color} />
+      <rect x="10" y="7" width="1" height="1" fill={color} />
+      <rect x="11" y="7" width="1" height="1" fill={color} />
+      <rect x="12" y="7" width="1" height="1" fill={color} />
+      <rect x="3" y="8" width="1" height="1" fill={color} />
+      <rect x="4" y="8" width="1" height="1" fill={color} />
+      <rect x="5" y="8" width="1" height="1" fill={color} />
+      <rect x="6" y="8" width="1" height="1" fill={color} />
+      <rect x="7" y="8" width="1" height="1" fill={color} />
+      <rect x="8" y="8" width="1" height="1" fill={color} />
+      <rect x="9" y="8" width="1" height="1" fill="none" />
+      <rect x="10" y="8" width="1" height="1" fill={color} />
+      <rect x="11" y="8" width="1" height="1" fill={color} />
+      <rect x="12" y="8" width="1" height="1" fill={color} />
+      <rect x="3" y="9" width="1" height="1" fill={color} />
+      <rect x="4" y="9" width="1" height="1" fill={color} />
+      <rect x="5" y="9" width="1" height="1" fill={color} />
+      <rect x="6" y="9" width="1" height="1" fill={color} />
+      <rect x="7" y="9" width="1" height="1" fill={color} />
+      <rect x="8" y="9" width="1" height="1" fill={color} />
+      <rect x="9" y="9" width="1" height="1" fill={color} />
+      <rect x="10" y="9" width="1" height="1" fill={color} />
+      <rect x="11" y="9" width="1" height="1" fill={color} />
+      <rect x="12" y="9" width="1" height="1" fill={color} />
+      <rect x="3" y="10" width="1" height="1" fill={color} />
+      <rect x="4" y="10" width="1" height="1" fill={color} />
+      <rect x="5" y="10" width="1" height="1" fill={color} />
+      <rect x="6" y="10" width="1" height="1" fill={color} />
+      <rect x="7" y="10" width="1" height="1" fill={color} />
+      <rect x="8" y="10" width="1" height="1" fill={color} />
+      <rect x="9" y="10" width="1" height="1" fill="none" />
+      <rect x="10" y="10" width="1" height="1" fill={color} />
+      <rect x="11" y="10" width="1" height="1" fill={color} />
+      <rect x="12" y="10" width="1" height="1" fill={color} />
+      <rect x="3" y="11" width="1" height="1" fill={color} />
+      <rect x="4" y="11" width="1" height="1" fill={color} />
+      <rect x="5" y="11" width="1" height="1" fill={color} />
+      <rect x="6" y="11" width="1" height="1" fill={color} />
+      <rect x="7" y="11" width="1" height="1" fill={color} />
+      <rect x="8" y="11" width="1" height="1" fill={color} />
+      <rect x="9" y="11" width="1" height="1" fill={color} />
+      <rect x="10" y="11" width="1" height="1" fill={color} />
+      <rect x="11" y="11" width="1" height="1" fill={color} />
+      <rect x="12" y="11" width="1" height="1" fill={color} />
+      <rect x="3" y="12" width="1" height="1" fill={color} />
+      <rect x="4" y="12" width="1" height="1" fill={color} />
+      <rect x="5" y="12" width="1" height="1" fill={color} />
+      <rect x="6" y="12" width="1" height="1" fill={color} />
+      <rect x="7" y="12" width="1" height="1" fill={color} />
+      <rect x="8" y="12" width="1" height="1" fill={color} />
+      <rect x="9" y="12" width="1" height="1" fill="none" />
+      <rect x="10" y="12" width="1" height="1" fill={color} />
+      <rect x="11" y="12" width="1" height="1" fill={color} />
+      <rect x="12" y="12" width="1" height="1" fill={color} />
+      <rect x="3" y="13" width="1" height="1" fill={color} />
+      <rect x="4" y="13" width="1" height="1" fill={color} />
+      <rect x="5" y="13" width="1" height="1" fill={color} />
+      <rect x="6" y="13" width="1" height="1" fill={color} />
+      <rect x="7" y="13" width="1" height="1" fill={color} />
+      <rect x="8" y="13" width="1" height="1" fill={color} />
+      <rect x="9" y="13" width="1" height="1" fill={color} />
+      <rect x="10" y="13" width="1" height="1" fill={color} />
+      <rect x="11" y="13" width="1" height="1" fill={color} />
+      <rect x="12" y="13" width="1" height="1" fill={color} />
     </svg>
   );
 };

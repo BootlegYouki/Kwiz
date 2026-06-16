@@ -71,15 +71,15 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz, isSelected, onClick, onContex
     quiz.questionType === 'multiple_choice'
       ? 'MC'
       : quiz.questionType === 'identification'
-      ? 'ID'
-      : 'HY';
+        ? 'ID'
+        : 'HY';
 
   const typeColor =
     quiz.questionType === 'multiple_choice'
       ? 'text-cobalt'
       : quiz.questionType === 'identification'
-      ? 'text-amber'
-      : 'text-green';
+        ? 'text-amber'
+        : 'text-green';
 
   const isGenerating = quiz.status === 'generating';
   const isError = quiz.status === 'error';
@@ -89,13 +89,11 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz, isSelected, onClick, onContex
       onClick={onClick}
       onContextMenu={onContextMenu}
       disabled={isGenerating}
-      className={`w-full border-[1.5px] px-4 py-3 text-left flex flex-col gap-1 cursor-pointer select-none transition-all ${
-        isSelected
+      className={`w-full border-[1.5px] px-4 py-3 text-left flex flex-col gap-1 cursor-pointer select-none transition-all ${isSelected
           ? 'border-primary bg-primary/10 text-primary'
           : 'border-border text-foreground hover:border-primary hover:bg-primary/5'
-      } ${isGenerating ? 'opacity-60 cursor-not-allowed animate-pulse' : ''} ${
-        isError ? 'border-destructive bg-destructive/10 text-destructive/90 cursor-default' : ''
-      }`}
+        } ${isGenerating ? 'opacity-60 cursor-not-allowed animate-pulse' : ''} ${isError ? 'border-destructive bg-destructive/10 text-destructive/90 cursor-default' : ''
+        }`}
     >
       <div className="flex items-start justify-between gap-2">
         <span className="text-xs font-bold leading-snug flex-1 min-w-0 break-words">
@@ -224,7 +222,7 @@ const NewQuizModal: React.FC<NewQuizModalProps> = ({
       });
       if (selected) {
         const paths = Array.isArray(selected) ? selected : [selected];
-        
+
         // If a .kwiz file is picked, it should be the only attachment
         const hasKwiz = paths.some(p => p.toLowerCase().endsWith('.kwiz'));
         if (hasKwiz) {
@@ -247,11 +245,11 @@ const NewQuizModal: React.FC<NewQuizModalProps> = ({
           newAttachments.forEach(async (att) => {
             try {
               const md = await convertToMarkdown(att.path);
-              setAttachments(prev => prev.map(item => 
+              setAttachments(prev => prev.map(item =>
                 item.path === att.path ? { ...item, status: 'ready', content: md } : item
               ));
             } catch (err: any) {
-              setAttachments(prev => prev.map(item => 
+              setAttachments(prev => prev.map(item =>
                 item.path === att.path ? { ...item, status: 'error', error: err?.message || err || 'Failed to convert' } : item
               ));
             }
@@ -304,7 +302,7 @@ const NewQuizModal: React.FC<NewQuizModalProps> = ({
                 </button>
               </div>
             ))}
-            
+
             {!isKwizFile && (
               <button
                 type="button"
@@ -516,7 +514,7 @@ export default function App() {
     isDestructive?: boolean;
     onConfirm: () => void;
     onCancel?: () => void;
-  }>({ visible: false, title: '', message: '', type: 'alert', onConfirm: () => {} });
+  }>({ visible: false, title: '', message: '', type: 'alert', onConfirm: () => { } });
 
   const showConfirm = (
     title: string,
@@ -718,8 +716,8 @@ export default function App() {
         ? config.attachments[0].name.replace(/\.[^/.]+$/, "")
         : `${config.attachments[0].name.replace(/\.[^/.]+$/, "")} (+${config.attachments.length - 1} files)`
       : config.customPrompt
-      ? `${config.customPrompt.substring(0, 20)}...`
-      : 'General Quiz';
+        ? `${config.customPrompt.substring(0, 20)}...`
+        : 'General Quiz';
 
     const tempQuiz: QuizSet = {
       id: quizId,
@@ -728,7 +726,7 @@ export default function App() {
       questionType: config.questionType,
       questions: [],
       source: config.attachments.length > 0 ? 'attachment' : 'prompt',
-      fileName: config.attachments.length > 0 
+      fileName: config.attachments.length > 0
         ? config.attachments.map(a => a.name).join(', ')
         : undefined,
       status: 'generating',
@@ -759,7 +757,7 @@ export default function App() {
           // Preprocess and repair TOON string to handle indentation drops and trailing spaces
           let processedToon = rawToon.trim();
           processedToon = processedToon.replace(/^```[a-zA-Z0-9-]*\n/, '').replace(/\n```$/, '');
-          
+
           const lines = processedToon.split('\n')
             .map(line => line.trimEnd())
             .filter(line => line.trim().length > 0);
@@ -788,7 +786,7 @@ export default function App() {
           if (qsIndex !== -1) {
             const headerPart = processedToon.slice(0, qsIndex);
             const qsPart = processedToon.slice(qsIndex);
-            
+
             const items = qsPart.split(/^\s*-\s*k\s*:/gm);
             let validItems: string[] = [];
             for (let j = 1; j < items.length; j++) {
@@ -821,11 +819,11 @@ export default function App() {
             const next = prev.map((q) =>
               q.id === quizId
                 ? {
-                    ...q,
-                    title: parsed.title || q.title,
-                    status: 'ready' as const,
-                    questions: parsed.questions,
-                  }
+                  ...q,
+                  title: parsed.title || q.title,
+                  status: 'ready' as const,
+                  questions: parsed.questions,
+                }
                 : q
             );
             saveQuizzes(next);
@@ -889,9 +887,9 @@ export default function App() {
   const percentage = Math.round((finalScore / resultTotal) * 100);
   const reviewComment =
     percentage === 100 ? 'Perfect score!' :
-    percentage >= 80 ? 'Great work!' :
-    percentage >= 50 ? 'Passed!' :
-    'Failed. Study more!';
+      percentage >= 80 ? 'Great work!' :
+        percentage >= 50 ? 'Passed!' :
+          'Failed. Study more!';
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
@@ -904,8 +902,8 @@ export default function App() {
       <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden min-h-0">
         {/* ── TOP NAV ─────────────────────────────────────────────────── */}
         <nav className="shrink-0 select-none">
-          <TuiContainer label="Nav" style={{ width: '100%' }}>
-            <div className="flex items-center justify-between gap-6 py-1 select-none">
+          <TuiContainer label="Nav" style={{ width: '100%'}}>
+            <div className="flex items-center gap-6 py-1 select-none">
               {/* Logo */}
               <div className="flex items-center gap-3">
                 <IconSvg className="w-8 h-8 text-primary shrink-0" />
@@ -918,7 +916,7 @@ export default function App() {
               {/* Theme Toggle */}
               <button
                 onClick={handleToggleTheme}
-                className="w-9 h-9 flex items-center justify-center border-[1.5px] border-border hover:bg-primary/10 active:scale-95 cursor-pointer select-none shrink-0"
+                className="w-9 h-9 p-0 flex items-center justify-center border-[1.5px] border-border hover:bg-primary/10 active:scale-95 cursor-pointer select-none shrink-0"
                 title="Toggle Theme"
               >
                 {isDark ? <Sun size={18} className="text-primary" /> : <Moon size={18} className="text-primary" />}
@@ -951,11 +949,10 @@ export default function App() {
                   setView('home');
                   setSelectedQuizId(null);
                 }}
-                className={`w-full border-[1.5px] py-3 px-4 flex items-center justify-center gap-2 cursor-pointer text-sm font-bold active:scale-95 shrink-0 transition-all ${
-                  view === 'home'
+                className={`w-full border-[1.5px] py-3 px-4 flex items-center justify-center gap-2 cursor-pointer text-sm font-bold active:scale-95 shrink-0 transition-all ${view === 'home'
                     ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border text-foreground hover:border-primary hover:bg-primary/5'
-                }`}
+                  }`}
               >
                 <span>Home</span>
               </button>
@@ -1029,10 +1026,10 @@ export default function App() {
             <TuiContainer
               label={
                 view === 'playing' && selectedQuiz
-                  ? `Playing — ${selectedQuiz.title}`
+                  ? `${selectedQuiz.title}`
                   : view === 'results' && selectedQuiz
-                  ? `Results — ${selectedQuiz.title}`
-                  : 'Main'
+                    ? `Results — ${selectedQuiz.title}`
+                    : 'Main'
               }
               style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}
               contentStyle={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, padding: '16px', overflowY: 'auto' }}
@@ -1065,11 +1062,10 @@ export default function App() {
                               });
                             }}
                             disabled={isGenerating}
-                            className={`border-[1.5px] p-4 flex flex-col justify-between text-left cursor-pointer select-none transition-all ${
-                              isGenerating ? 'border-border opacity-60 cursor-not-allowed animate-pulse' :
-                              isError ? 'border-destructive bg-destructive/10 text-destructive/90 hover:bg-destructive/20' :
-                              'border-border hover:border-primary hover:bg-primary/5'
-                            }`}
+                            className={`border-[1.5px] p-4 flex flex-col justify-between text-left cursor-pointer select-none transition-all ${isGenerating ? 'border-border opacity-60 cursor-not-allowed animate-pulse' :
+                                isError ? 'border-destructive bg-destructive/10 text-destructive/90 hover:bg-destructive/20' :
+                                  'border-border hover:border-primary hover:bg-primary/5'
+                              }`}
                           >
                             <div className="flex items-start justify-between w-full gap-2">
                               <span className="text-[10px] text-muted font-mono">{new Date(quiz.createdAt).toLocaleDateString()}</span>
@@ -1132,9 +1128,8 @@ export default function App() {
                       <div className="mt-auto pt-3 shrink-0 flex flex-col gap-2">
                         <button
                           onClick={() => setRetryMode(r => !r)}
-                          className={`w-full border-[1.5px] px-3 py-2 text-sm font-bold font-mono transition-all cursor-pointer select-none flex items-center justify-between gap-2 ${
-                            retryMode ? 'border-amber-500 text-amber-500 bg-amber-500/10' : 'border-border text-muted hover:border-foreground hover:text-foreground'
-                          }`}
+                          className={`w-full border-[1.5px] px-3 py-2 text-sm font-bold font-mono transition-all cursor-pointer select-none flex items-center justify-between gap-2 ${retryMode ? 'border-amber-500 text-amber-500 bg-amber-500/10' : 'border-border text-muted hover:border-foreground hover:text-foreground'
+                            }`}
                         >
                           <span>Retry Wrong</span>
                           <span className={`text-xs font-mono ${retryMode ? 'text-amber-500' : 'text-muted'}`}>{retryMode ? 'ON' : 'OFF'}</span>
@@ -1214,11 +1209,10 @@ export default function App() {
                           />
                           {isLocked && (
                             <div
-                              className={`w-full border-[1.5px] px-5 py-4 text-center font-bold text-base ${
-                                checkAnswer(currentQuestion, selectedAnswer)
+                              className={`w-full border-[1.5px] px-5 py-4 text-center font-bold text-base ${checkAnswer(currentQuestion, selectedAnswer)
                                   ? 'border-green-500 bg-green-500/10 text-green-500'
                                   : 'border-destructive bg-destructive/10 text-destructive'
-                              }`}
+                                }`}
                             >
                               {checkAnswer(currentQuestion, selectedAnswer)
                                 ? '✓ CORRECT'
@@ -1250,7 +1244,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  </div>
+                </div>
               )}
 
 
