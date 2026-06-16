@@ -1,7 +1,7 @@
 {
   "E:\\Github\\tui-template-native\\app.json": {
-    "mtime": 1780538972.5864184,
-    "ast_hash": "86e27687b39497db4bbc7d473d8a2560",
+    "mtime": 1781521255.3018055,
+    "ast_hash": "c2546d265cfb1711769f55905a84a11c",
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\App.tsx": {
@@ -20,8 +20,8 @@
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\package.json": {
-    "mtime": 1780756045.868817,
-    "ast_hash": "daa3723ca14dc6cb4518a36e1e954b90",
+    "mtime": 1781521251.6553917,
+    "ast_hash": "fee30f3b44b5974ab0eee0d1ee19972c",
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\tsconfig.json": {
@@ -104,11 +104,6 @@
     "ast_hash": "637776aa6f7496d069afe7520c845c8a",
     "semantic_hash": ""
   },
-  "E:\\Github\\tui-template-native\\.github\\workflows\\build-ios-ipa.yml": {
-    "mtime": 1780528181.609313,
-    "ast_hash": "8f0ecd2d12c99c4f8769f7086809dafa",
-    "semantic_hash": ""
-  },
   "E:\\Github\\tui-template-native\\assets\\icon.png": {
     "mtime": 1780756556.4079673,
     "ast_hash": "66f43f40fa01d17e485c472a54c97f2e",
@@ -120,8 +115,8 @@
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\scripts\\rename-project.js": {
-    "mtime": 1780448925.272751,
-    "ast_hash": "0b400f42b896f8f17aa8fc1daebd61ba",
+    "mtime": 1780756956.310187,
+    "ast_hash": "de7319498e7903372bde03a15b00b7c1",
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\README.md": {
@@ -150,38 +145,63 @@
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\.github\\workflows\\build-dev-client.yml": {
-    "mtime": 1780538985.6554344,
-    "ast_hash": "cbd764ab5598c48695796be16c78f01b",
+    "mtime": 1781064608.1526654,
+    "ast_hash": "6b56106767c440e224534dd3485b7780",
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\scripts\\fix_assets.py": {
-    "mtime": 1780756712.7832813,
-    "ast_hash": "8aafae08702015ab74182c60c5a7aa68",
+    "mtime": 1780757602.7217226,
+    "ast_hash": "9ea07b4202d3b70409ad50c479082fa8",
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\assets\\adaptive-icon-monochrome.png": {
-    "mtime": 1780756719.7675455,
-    "ast_hash": "982bf3474d0e379948acef03104c7dde",
+    "mtime": 1780757619.6685169,
+    "ast_hash": "cddac5159210e308f430679432c36836",
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\assets\\adaptive-icon.png": {
-    "mtime": 1780756719.76653,
-    "ast_hash": "982bf3474d0e379948acef03104c7dde",
+    "mtime": 1780757619.6675093,
+    "ast_hash": "cddac5159210e308f430679432c36836",
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\assets\\splash-icon-monochrome.png": {
-    "mtime": 1780756719.7620745,
+    "mtime": 1780757619.6613848,
     "ast_hash": "756385782d39ffadd1886089155b80ec",
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\assets\\splash-icon.png": {
-    "mtime": 1780756719.759005,
+    "mtime": 1780757619.658357,
     "ast_hash": "756385782d39ffadd1886089155b80ec",
     "semantic_hash": ""
   },
   "E:\\Github\\tui-template-native\\assets\\favicon.png": {
-    "mtime": 1780756719.7705824,
+    "mtime": 1780757619.6721928,
     "ast_hash": "d95c91d525035b852d4ef48721a732a2",
+    "semantic_hash": ""
+  },
+  "E:\\Github\\tui-template-native\\index.share.js": {
+    "mtime": 1780825034.3439803,
+    "ast_hash": "bb1eac3602989d0218d7b85efb73dfc7",
+    "semantic_hash": ""
+  },
+  "E:\\Github\\tui-template-native\\metro.config.js": {
+    "mtime": 1780825038.5182712,
+    "ast_hash": "af4006973288fd2e5866ef8b228e05c3",
+    "semantic_hash": ""
+  },
+  "E:\\Github\\tui-template-native\\.github\\workflows\\release.yml": {
+    "mtime": 1781583341.3607893,
+    "ast_hash": "cda62ea89bcbcffab97c4ec9f6bd658f",
+    "semantic_hash": ""
+  },
+  "E:\\Github\\tui-template-native\\.agents\\rules\\ponytail.md": {
+    "mtime": 1781583560.3052652,
+    "ast_hash": "ffef2359ce207c169ea3fb849f8a1810",
+    "semantic_hash": ""
+  },
+  "E:\\Github\\tui-template-native\\.agents\\skills\\ponytail\\SKILL.md": {
+    "mtime": 1781583685.9267716,
+    "ast_hash": "0a44d3e82d15c88572e6ab9ca1bacfef",
     "semantic_hash": ""
   }
 }
