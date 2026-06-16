@@ -1,19 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Search,
-  Plus,
   X,
   Sun,
   Moon,
   BookOpen,
-  Layers,
-  CheckSquare,
-  Shuffle,
   Trophy,
   ChevronLeft,
   ChevronRight,
-  MoreVertical,
-  Home,
 } from 'lucide-react';
 import { TuiContainer } from './components/TuiContainer';
 import { TuiButton } from './components/TuiButton';
@@ -84,20 +77,6 @@ interface QuizCardProps {
 }
 
 const QuizCard: React.FC<QuizCardProps> = ({ quiz, isSelected, onClick, onContextMenu }) => {
-  const typeLabel =
-    quiz.questionType === 'multiple_choice'
-      ? 'MC'
-      : quiz.questionType === 'identification'
-        ? 'ID'
-        : 'HY';
-
-  const typeColor =
-    quiz.questionType === 'multiple_choice'
-      ? 'text-cobalt'
-      : quiz.questionType === 'identification'
-        ? 'text-amber'
-        : 'text-green';
-
   const isGenerating = quiz.status === 'generating';
   const isError = quiz.status === 'error';
 
@@ -484,8 +463,8 @@ export default function App() {
   // ── UI state ───────────────────────────────────────────────────────────────
   const [view, setView] = useState<AppView>('home');
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
-  const [typeFilter, setTypeFilter] = useState<QuizTypeFilter>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter] = useState<QuizTypeFilter>('all');
+  const [searchQuery] = useState('');
   const [showNewQuizModal, setShowNewQuizModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -905,12 +884,6 @@ export default function App() {
   } as React.CSSProperties;
 
   // ── Sidebar content ────────────────────────────────────────────────────────
-  const filterTabs: { label: string; value: QuizTypeFilter; icon: React.ReactNode }[] = [
-    { label: 'All', value: 'all', icon: <BookOpen size={15} /> },
-    { label: 'Multiple Choice', value: 'multiple_choice', icon: <CheckSquare size={15} /> },
-    { label: 'Identification', value: 'identification', icon: <Layers size={15} /> },
-    { label: 'Hybrid', value: 'hybrid', icon: <Shuffle size={15} /> },
-  ];
 
   // ── Player helpers ─────────────────────────────────────────────────────────
   const currentQuestion = questionQueue[currentIndex] ?? null;
@@ -1081,8 +1054,6 @@ export default function App() {
                   ) : (
                     <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                       {quizzes.map((quiz) => {
-                        const typeLabel = quiz.questionType === 'multiple_choice' ? 'MC' : quiz.questionType === 'identification' ? 'ID' : 'HY';
-                        const typeColor = quiz.questionType === 'multiple_choice' ? 'var(--color-cobalt, #3B82F6)' : quiz.questionType === 'identification' ? '#F59E0B' : '#10B981';
                         const isGenerating = quiz.status === 'generating';
                         const isError = quiz.status === 'error';
                         return (
