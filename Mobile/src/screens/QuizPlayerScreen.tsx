@@ -160,50 +160,69 @@ export const QuizPlayerScreen: React.FC<QuizPlayerScreenProps> = ({ quiz, onFini
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Segmented Retro Progress Bar */}
         <TuiContainer label={`Question ${currentOriginalIndex !== -1 ? currentOriginalIndex + 1 : 1} / ${quiz.questions.length}`}>
-          <View style={[styles.progressOuterRow, { height: 30 }]}>
-            {quiz.questions.map((q, origIdx) => {
-              // Find the latest attempt for this question in the queue
-              let latestAttemptIdx = -1;
-              for (let i = questionQueue.length - 1; i >= 0; i--) {
-                if (questionQueue[i] === q && lockedStates[i]) {
-                  latestAttemptIdx = i;
-                  break;
+          <View style={[styles.progressOuterRow, { height: 30, gap: 0 }]}>
+            {(() => {
+              const NUM_BARS = 44;
+              const totalOriginal = quiz.questions.length;
+              const currentOriginalIndex = quiz.questions.indexOf(currentQuestion);
+
+              // Count unique questions that are correct
+              const numCorrect = quiz.questions.filter(q => 
+                questionQueue.some((qq, idx) => qq === q && lockedStates[idx] && checkAnswer(qq, userAnswers[idx]))
+              ).length;
+
+              // Count unique questions that are currently incorrect (attempted but not correct)
+              const numIncorrect = quiz.questions.filter(q => {
+                let latestAttemptIdx = -1;
+                for (let i = questionQueue.length - 1; i >= 0; i--) {
+                  if (questionQueue[i] === q && lockedStates[i]) {
+                    latestAttemptIdx = i;
+                    break;
+                  }
                 }
-              }
+                if (latestAttemptIdx === -1) return false;
+                const wasCorrect = checkAnswer(q, userAnswers[latestAttemptIdx]);
+                return !wasCorrect;
+              }).length;
 
-              const isAnswered = latestAttemptIdx !== -1;
-              const answer = isAnswered ? userAnswers[latestAttemptIdx] : '';
-              const isCorrect = isAnswered && checkAnswer(q, answer);
-              
-              // Is this original question the one currently active?
-              const isActive = currentQuestion === q;
+              // Active bar index
+              const activeBarIdx = totalOriginal > 0 ? Math.min(NUM_BARS - 1, Math.floor((currentOriginalIndex / totalOriginal) * NUM_BARS)) : 0;
 
-              let bgColor = 'transparent';
-              let borderColor = isDark ? colors.mutedForeground : colors.border; // Neutral border for untouched questions
+              const greenBarsCount = Math.round((numCorrect / totalOriginal) * NUM_BARS);
+              const redBarsCount = Math.min(NUM_BARS - greenBarsCount, Math.round((numIncorrect / totalOriginal) * NUM_BARS));
 
-              if (isAnswered) {
-                bgColor = isCorrect ? '#10B981' : colors.destructive;
-                borderColor = isCorrect ? '#10B981' : colors.destructive;
-              }
+              return Array.from({ length: NUM_BARS }).map((_, barIdx) => {
+                let bgColor = isDark ? '#27272A' : '#E4E4E7';
+                let borderColor = 'transparent';
+                let borderWidth = 0;
 
-              if (isActive) {
-                borderColor = colors.primary;
-              }
+                if (barIdx < greenBarsCount) {
+                  bgColor = '#10B981';
+                } else if (barIdx < greenBarsCount + redBarsCount) {
+                  bgColor = colors.destructive;
+                }
 
-              return (
-                <View
-                  key={origIdx}
-                  style={[
-                    styles.progressSegment,
-                    {
-                      backgroundColor: bgColor,
-                      borderColor: borderColor,
-                      borderWidth: isActive ? 2.5 : 1.5,
-                    },
-                  ]}
-                />
-              );
-            })}
+                if (!isDark && (barIdx >= greenBarsCount + redBarsCount)) {
+                  borderWidth = 0.5;
+                  borderColor = 'rgba(0,0,0,0.55)';
+                }
+
+                return (
+                  <View
+                    key={barIdx}
+                    style={[
+                      styles.progressSegment,
+                      {
+                        backgroundColor: bgColor,
+                        borderColor: borderColor,
+                        borderWidth: borderWidth,
+                        marginRight: barIdx === NUM_BARS - 1 ? 0 : 1.5,
+                      },
+                    ]}
+                  />
+                );
+              });
+            })()}
           </View>
         </TuiContainer>
 
